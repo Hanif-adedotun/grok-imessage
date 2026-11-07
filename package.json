@@ -1,0 +1,30 @@
+{
+  "name": "grok-imessage",
+  "version": "0.0.1",
+  "private": true,
+  "description": "iMessage front door to your Grok Bot via Spectrum",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hanif-adedotun/grok-imessage.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hanif-adedotun/grok-imessage/issues"
+  },
+  "homepage": "https://github.com/Hanif-adedotun/grok-imessage#readme",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @grok-imessage/bridge dev",
+    "dev:bridge": "bun run --filter @grok-imessage/bridge dev",
+    "dev:web": "bun run --filter @grok-imessage/web dev",
+    "build": "bun run --filter @grok-imessage/web build",
+    "start": "bun run --filter @grok-imessage/bridge start",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter @grok-imessage/bridge test"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}

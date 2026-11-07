@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.turbo/
+coverage/
+.vscode/
+.idea/
+*.tsbuildinfo
+.bun/
