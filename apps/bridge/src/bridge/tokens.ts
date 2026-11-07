@@ -8,7 +8,7 @@ export type Binding = {
   correlationId: string;
 };
 
-export type ConsumeResult =
+export type TokenLookupResult =
   | { ok: true; binding: Binding }
   | { ok: false; reason: "invalid" | "expired" | "consumed" };
 
@@ -58,7 +58,17 @@ export class TokenStore {
     });
   }
 
-  consume(token: string): ConsumeResult {
+  /** Validate and return binding without marking consumed. */
+  resolve(token: string): TokenLookupResult {
+    return this.lookup(token, false);
+  }
+
+  /** Mark a previously resolved token as consumed (one-shot). */
+  consume(token: string): TokenLookupResult {
+    return this.lookup(token, true);
+  }
+
+  private lookup(token: string, markConsumed: boolean): TokenLookupResult {
     const tokenHash = this.hash(token);
     const record = this.records.get(tokenHash);
     if (!record) return { ok: false, reason: "invalid" };
@@ -67,7 +77,9 @@ export class TokenStore {
       this.records.delete(tokenHash);
       return { ok: false, reason: "expired" };
     }
-    record.consumedAt = this.now();
+    if (markConsumed) {
+      record.consumedAt = this.now();
+    }
     return { ok: true, binding: record.binding };
   }
 
