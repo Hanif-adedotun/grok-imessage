@@ -1,64 +1,77 @@
+import { createHash } from "node:crypto";
 import type { Message, Space } from "spectrum-ts";
 
-export type BoundSpace = {
-  /** Spectrum Space kept in-process for v1. */
+export type Binding = {
   space: Space;
   message: Message | null;
   from: string;
   correlationId: string;
+};
+
+export type ConsumeResult =
+  | { ok: true; binding: Binding }
+  | { ok: false; reason: "invalid" | "expired" | "consumed" };
+
+type TokenRecord = {
+  tokenHash: string;
+  binding: Binding;
   createdAt: number;
   expiresAt: number;
   consumedAt: number | null;
 };
 
-type TokenRecord = BoundSpace & {
-  tokenHash: string;
+export type TokenStoreOptions = {
+  pepper: string;
+  ttlMs: number;
+  now: () => number;
+  /** Injectable for tests (shared map / inspection). */
+  records?: Map<string, TokenRecord>;
 };
 
-const tokens = new Map<string, TokenRecord>();
+export class TokenStore {
+  private readonly pepper: string;
+  private readonly ttlMs: number;
+  private readonly now: () => number;
+  private readonly records: Map<string, TokenRecord>;
 
-function pepper(): string {
-  return process.env.REPLY_TOKEN_PEPPER ?? "dev-only-pepper";
-}
-
-export async function hashToken(token: string): Promise<string> {
-  const data = new TextEncoder().encode(`${pepper()}:${token}`);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Buffer.from(digest).toString("hex");
-}
-
-export function createReplyToken(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return Buffer.from(bytes).toString("base64url");
-}
-
-export async function bindToken(
-  token: string,
-  binding: Omit<BoundSpace, "createdAt" | "expiresAt" | "consumedAt">,
-  ttlMs = 45 * 60 * 1000,
-): Promise<void> {
-  const now = Date.now();
-  const tokenHash = await hashToken(token);
-  tokens.set(tokenHash, {
-    ...binding,
-    tokenHash,
-    createdAt: now,
-    expiresAt: now + ttlMs,
-    consumedAt: null,
-  });
-}
-
-export async function consumeToken(
-  token: string,
-): Promise<{ ok: true; binding: BoundSpace } | { ok: false; reason: "invalid" | "expired" | "consumed" }> {
-  const tokenHash = await hashToken(token);
-  const record = tokens.get(tokenHash);
-  if (!record) return { ok: false, reason: "invalid" };
-  if (record.consumedAt != null) return { ok: false, reason: "consumed" };
-  if (Date.now() > record.expiresAt) {
-    tokens.delete(tokenHash);
-    return { ok: false, reason: "expired" };
+  constructor(opts: TokenStoreOptions) {
+    this.pepper = opts.pepper;
+    this.ttlMs = opts.ttlMs;
+    this.now = opts.now;
+    this.records = opts.records ?? new Map();
   }
-  record.consumedAt = Date.now();
-  return { ok: true, binding: record };
+
+  mint(): string {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    return Buffer.from(bytes).toString("base64url");
+  }
+
+  bind(token: string, binding: Binding): void {
+    const tokenHash = this.hash(token);
+    const createdAt = this.now();
+    this.records.set(tokenHash, {
+      tokenHash,
+      binding,
+      createdAt,
+      expiresAt: createdAt + this.ttlMs,
+      consumedAt: null,
+    });
+  }
+
+  consume(token: string): ConsumeResult {
+    const tokenHash = this.hash(token);
+    const record = this.records.get(tokenHash);
+    if (!record) return { ok: false, reason: "invalid" };
+    if (record.consumedAt != null) return { ok: false, reason: "consumed" };
+    if (this.now() > record.expiresAt) {
+      this.records.delete(tokenHash);
+      return { ok: false, reason: "expired" };
+    }
+    record.consumedAt = this.now();
+    return { ok: true, binding: record.binding };
+  }
+
+  private hash(token: string): string {
+    return createHash("sha256").update(`${this.pepper}:${token}`).digest("hex");
+  }
 }

@@ -1,14 +1,19 @@
 import { Spectrum } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
-import { bindToken, createReplyToken } from "./bridge/tokens.ts";
+import { TokenStore } from "./bridge/tokens.ts";
 import { wakeGrokBot } from "./bridge/wake.ts";
 import { createHttpApp } from "./http.ts";
 
 function allowedSenders(): Set<string> | null {
   const raw = process.env.ALLOWED_SENDERS?.trim();
   if (!raw) return null;
-  return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
 }
 
 function publicReplyUrl(): string {
@@ -19,8 +24,14 @@ function publicReplyUrl(): string {
   return `${base}/reply`;
 }
 
+const store = new TokenStore({
+  pepper: process.env.REPLY_TOKEN_PEPPER ?? "dev-only-pepper",
+  ttlMs: 45 * 60 * 1000,
+  now: () => Date.now(),
+});
+
 const port = Number(process.env.PORT ?? 3000);
-const http = createHttpApp();
+const http = createHttpApp(store);
 
 const server = Bun.serve({
   port,
@@ -42,11 +53,7 @@ if (!projectId || !projectSecret) {
   const app = await Spectrum({
     projectId,
     projectSecret,
-    providers: [
-      imessage.config(),
-      // Local dry-runs without burning an iMessage line
-      terminal.config(),
-    ],
+    providers: [imessage.config(), terminal.config()],
   });
 
   console.log("[spectrum] connected — waiting for messages");
@@ -65,7 +72,6 @@ if (!projectId || !projectSecret) {
         const text = message.content.text.trim();
         if (!text) continue;
 
-        // Phase 1 default: echo. Flip to wake once GROK_BOT_* is set and you want the Bot loop.
         const useWake = Boolean(process.env.GROK_BOT_WEBHOOK_URL && process.env.GROK_BOT_WEBHOOK_KEY);
 
         if (!useWake) {
@@ -75,9 +81,9 @@ if (!projectId || !projectSecret) {
           continue;
         }
 
-        const replyToken = createReplyToken();
+        const replyToken = store.mint();
         const correlationId = crypto.randomUUID();
-        await bindToken(replyToken, {
+        store.bind(replyToken, {
           space,
           message,
           from,
@@ -100,7 +106,6 @@ if (!projectId || !projectSecret) {
           continue;
         }
 
-        // Instant ack while the Bot works (reply comes later via POST /reply)
         try {
           await message.react("like");
         } catch {

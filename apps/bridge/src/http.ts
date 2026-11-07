@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { handleReply } from "./bridge/reply.ts";
+import { createReplyHandler } from "./bridge/reply.ts";
+import type { TokenStore } from "./bridge/tokens.ts";
 
-export function createHttpApp() {
+export function createHttpApp(store: TokenStore) {
   const app = new Hono();
 
   app.get("/health", (c) =>
@@ -12,7 +13,7 @@ export function createHttpApp() {
     }),
   );
 
-  app.post("/reply", handleReply);
+  app.post("/reply", createReplyHandler(store));
 
   return app;
 }
