@@ -48,6 +48,8 @@ flowchart LR
 
 ## Epic 1 — Reply token store
 
+**Status:** Done (`epic/1-token-store`)
+
 **Goal:** Correct one-shot, time-bounded tokens that bind a Spectrum `Space`.
 
 **API (sketch)**
