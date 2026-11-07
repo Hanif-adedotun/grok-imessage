@@ -90,18 +90,25 @@ if (!projectId || !projectSecret) {
           correlationId,
         });
 
-        const wake = await wakeGrokBot({
-          text,
-          from,
-          platform: String(message.platform ?? "imessage"),
-          reply_url: publicReplyUrl(),
-          reply_token: replyToken,
-          correlation_id: correlationId,
-          sent_at: new Date().toISOString(),
-        });
+        const wake = await wakeGrokBot(
+          {
+            fetch,
+            url: process.env.GROK_BOT_WEBHOOK_URL ?? "",
+            key: process.env.GROK_BOT_WEBHOOK_KEY ?? "",
+          },
+          {
+            text,
+            from,
+            platform: String(message.platform ?? "imessage"),
+            reply_url: publicReplyUrl(),
+            reply_token: replyToken,
+            correlation_id: correlationId,
+            sent_at: new Date().toISOString(),
+          },
+        );
 
         if (!wake.ok) {
-          console.error("[wake] failed", wake.status, wake.body);
+          console.error("[wake] failed", wake);
           await space.send("Couldn't reach your Grok Bot just now. Try again in a bit.");
           continue;
         }

@@ -84,6 +84,8 @@ class TokenStore {
 
 ## Epic 2 — Wake client
 
+**Status:** Done (`epic/2-wake-client`)
+
 **Goal:** Reliable `POST` to the Grok Bot routine webhook.
 
 **API (sketch)**
