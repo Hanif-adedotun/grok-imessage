@@ -10,6 +10,8 @@ export type BridgeEnv = {
   allowlist: Set<string> | null;
   pepper: string;
   ttlMs: number;
+  /** Optional bearer for Streamable HTTP MCP at `/mcp`. */
+  mcpAuthToken: string | null;
 };
 
 export type EnvIssue = {
@@ -49,6 +51,7 @@ export function loadBridgeEnv(raw: RawEnv): BridgeEnv {
     allowlist,
     pepper: trimOrNull(raw.REPLY_TOKEN_PEPPER) ?? "dev-only-pepper",
     ttlMs: 45 * 60 * 1000,
+    mcpAuthToken: trimOrNull(raw.MCP_AUTH_TOKEN),
   };
 }
 

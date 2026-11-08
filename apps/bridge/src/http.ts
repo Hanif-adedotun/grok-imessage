@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createMcpApp } from "./bridge/mcp.ts";
 import { createReplyHandler, type ReplyHandlerDeps } from "./bridge/reply.ts";
 import type { TokenStore } from "./bridge/tokens.ts";
 
@@ -7,11 +8,23 @@ export type HealthSnapshot = {
   wake: boolean;
 };
 
+export type HttpAppOptions = {
+  mcpAuthToken?: string | null;
+};
+
 export function createHttpApp(
   storeOrDeps: TokenStore | ReplyHandlerDeps,
   getHealth: () => HealthSnapshot = () => ({ spectrum: false, wake: false }),
+  options: HttpAppOptions = {},
 ) {
   const app = new Hono();
+
+  const deps: ReplyHandlerDeps =
+    typeof storeOrDeps === "object" &&
+    storeOrDeps !== null &&
+    "store" in storeOrDeps
+      ? storeOrDeps
+      : { store: storeOrDeps };
 
   app.get("/health", (c) => {
     const health = getHealth();
@@ -23,7 +36,8 @@ export function createHttpApp(
     });
   });
 
-  app.post("/reply", createReplyHandler(storeOrDeps));
+  app.post("/reply", createReplyHandler(deps));
+  app.route("/", createMcpApp({ ...deps, authToken: options.mcpAuthToken }));
 
   return app;
 }

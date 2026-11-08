@@ -62,6 +62,7 @@ const health: HealthSnapshot = {
 const http = createHttpApp(
   { store, inflight, log: consoleLog },
   () => health,
+  { mcpAuthToken: env.mcpAuthToken },
 );
 
 Bun.serve({
@@ -76,7 +77,7 @@ console.log(
 
 if (!spectrumConfigured(env)) {
   console.warn(
-    "[spectrum] PROJECT_ID / PROJECT_SECRET missing — HTTP /health and /reply are up; message loop not started. See .env.example",
+    "[spectrum] PROJECT_ID / PROJECT_SECRET missing — HTTP /health, /reply, /mcp are up; message loop not started. See .env.example",
   );
 } else {
   const app = await Spectrum({

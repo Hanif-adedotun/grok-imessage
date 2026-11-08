@@ -1,7 +1,7 @@
 # Bridge epics (`apps/bridge`)
 
-Scope: core loop only — Spectrum inbound → wake Grok Bot → `POST /reply` → Spectrum outbound.  
-Landing (`apps/web`) and MCP are out of scope until the bridge is proven.
+Scope: core loop — Spectrum inbound → wake Grok Bot → MCP `send_reply` / `POST /reply` → Spectrum outbound.  
+Landing (`apps/web`) polish is separate.
 
 ## Engineering bar
 
@@ -221,14 +221,34 @@ Only after Epic 5 smoke is green.
 ## Suggested build order (TDD)
 
 ```
-E0 harness → E1 tokens → E2 wake → E3 /reply → E4 inbound → E5 smoke → E6 harden
+E0 harness → E1 tokens → E2 wake → E3 /reply → E4 inbound → E5 smoke → E6 harden → E7 MCP
 ```
+
 
 Each epic merges only with: tests green, no unused exports, no comments that narrate the code.
 
+## Epic 7 — MCP `send_reply`
+
+**Status:** In progress (`epic/7-mcp`)
+
+**Goal:** Prefer structured MCP delivery over raw HTTP for Bot replies.
+
+**Deliverables**
+
+- Shared `deliverReply` used by `POST /reply` and MCP
+- Streamable HTTP MCP at `/mcp` (stateless JSON), tool `send_reply(text, reply_token, correlation_id?)`
+- Optional `MCP_AUTH_TOKEN` bearer on `/mcp`
+- Tests: tool + protocol initialize / tools/list / tools/call
+
+**Done when**
+
+- Bot can register `https://<bridge>/mcp` and deliver via `send_reply`
+- HTTP `/reply` still works as fallback
+
+---
+
 ## Explicit non-goals (until named epic)
 
-- MCP `send_reply` server
 - Durable token store / Redis
 - Spectrum webhook mode (`@spectrum-ts/hono`) — stream mode stays
 - xAI Responses API path
