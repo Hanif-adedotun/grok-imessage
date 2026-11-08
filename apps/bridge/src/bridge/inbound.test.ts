@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { Message, Space } from "spectrum-ts";
+import { RecentIdSet } from "./dedup.ts";
 import { handleInbound, type InboundDeps, type InboundInput } from "./inbound.ts";
+import { RateLimiter } from "./rate-limit.ts";
 import { TokenStore } from "./tokens.ts";
 import type { WakeDeps, WakePayload, WakeResult } from "./wake.ts";
 
@@ -69,6 +71,11 @@ function deps(
     allowlist: overrides.allowlist ?? null,
     nowIso: overrides.nowIso ?? (() => "2026-11-07T00:00:00.000Z"),
     uuid: overrides.uuid ?? (() => "uuid-1"),
+    rateLimiter: overrides.rateLimiter,
+    dedup: overrides.dedup,
+    inflight: overrides.inflight,
+    log: overrides.log,
+    wakeTimeoutMs: overrides.wakeTimeoutMs,
   };
 }
 
@@ -177,6 +184,31 @@ describe("handleInbound", () => {
     expect(log.sent[0]).toContain("Couldn't reach");
     expect(store.resolve(capturedToken)).toEqual({ ok: false, reason: "invalid" });
     expect(log.reacted).toEqual([]);
+  });
+
+  test("duplicate messageId → ignored", async () => {
+    const log = emptyLog();
+    const dedup = new RecentIdSet({ ttlMs: 60_000, now: () => 1 });
+    const d = deps(makeStore(), { dedup });
+    const first = await handleInbound(baseInput(log, { messageId: "m-1" }), d);
+    expect(first.outcome).toBe("echoed");
+    const second = await handleInbound(baseInput(log, { messageId: "m-1" }), d);
+    expect(second).toEqual({ outcome: "ignored", reason: "duplicate" });
+  });
+
+  test("rate limited → ignored", async () => {
+    const log = emptyLog();
+    const rateLimiter = new RateLimiter({
+      capacity: 1,
+      windowMs: 60_000,
+      now: () => 1,
+    });
+    const d = deps(makeStore(), { rateLimiter });
+    expect((await handleInbound(baseInput(log), d)).outcome).toBe("echoed");
+    expect(await handleInbound(baseInput(log), d)).toEqual({
+      outcome: "ignored",
+      reason: "rate_limited",
+    });
   });
 
   test("react failure is best-effort after successful wake", async () => {

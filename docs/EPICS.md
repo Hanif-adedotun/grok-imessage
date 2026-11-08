@@ -204,6 +204,8 @@ handleInbound(input: InboundMessage, deps: Deps): Promise<InboundResult>
 
 ## Epic 6 — Hardening (after loop works)
 
+**Status:** Done (`epic/6-hardening`)
+
 Only after Epic 5 smoke is green.
 
 | Item | Notes |

@@ -123,4 +123,23 @@ describe("wakeGrokBot", () => {
       body: "ECONNREFUSED",
     });
   });
+
+  test("abort → timeout", async () => {
+    const fetchMock: WakeFetch = async (_url, init) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          const err = new Error("aborted");
+          err.name = "AbortError";
+          reject(err);
+        });
+      });
+    };
+
+    const result = await wakeGrokBot(
+      { fetch: fetchMock, url: "https://bot.example/hook", key: "k", timeoutMs: 20 },
+      payload,
+    );
+
+    expect(result).toEqual({ ok: false, reason: "timeout" });
+  });
 });

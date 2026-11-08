@@ -1,4 +1,6 @@
 import type { Context } from "hono";
+import type { InFlightWatch } from "./inflight.ts";
+import type { LogFn } from "./log.ts";
 import type { TokenStore } from "./tokens.ts";
 
 type ReplyBody = {
@@ -6,7 +8,17 @@ type ReplyBody = {
   correlation_id?: string;
 };
 
-export function createReplyHandler(store: TokenStore) {
+export type ReplyHandlerDeps = {
+  store: TokenStore;
+  inflight?: InFlightWatch;
+  log?: LogFn;
+};
+
+export function createReplyHandler(deps: ReplyHandlerDeps | TokenStore) {
+  const store = "store" in deps ? deps.store : deps;
+  const inflight = "store" in deps ? deps.inflight : undefined;
+  const log = "store" in deps ? deps.log : undefined;
+
   return async (c: Context) => {
     const auth = c.req.header("Authorization");
     if (!auth?.startsWith("Bearer ")) {
@@ -36,17 +48,22 @@ export function createReplyHandler(store: TokenStore) {
       return c.json({ ok: false, error: resolved.reason }, status);
     }
 
+    const correlationId = body.correlation_id ?? resolved.binding.correlationId;
+
     try {
       await resolved.binding.space.send(text);
     } catch {
+      log?.("reply.send_failed", { correlation_id: correlationId });
       return c.json({ ok: false, error: "send_failed" }, 502);
     }
 
     store.consume(token);
+    inflight?.cancel(token);
+    log?.("reply.ok", { correlation_id: correlationId });
 
     return c.json({
       ok: true,
-      correlation_id: body.correlation_id ?? resolved.binding.correlationId,
+      correlation_id: correlationId,
     });
   };
 }
