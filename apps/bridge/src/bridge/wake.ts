@@ -20,13 +20,16 @@ export type WakeDeps = {
   fetch: WakeFetch;
   url: string;
   key: string;
+  /** Abort the wake HTTP call after this many ms (default 15_000). */
+  timeoutMs?: number;
 };
 
 export type WakeResult =
   | { ok: true }
   | { ok: false; reason: "misconfigured" }
   | { ok: false; reason: "http"; status: number; body: string }
-  | { ok: false; reason: "network"; body: string };
+  | { ok: false; reason: "network"; body: string }
+  | { ok: false; reason: "timeout" };
 
 export async function wakeGrokBot(deps: WakeDeps, payload: WakePayload): Promise<WakeResult> {
   const url = deps.url.trim();
@@ -34,6 +37,10 @@ export async function wakeGrokBot(deps: WakeDeps, payload: WakePayload): Promise
   if (!url || !key) {
     return { ok: false, reason: "misconfigured" };
   }
+
+  const timeoutMs = deps.timeoutMs ?? 15_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   let res: Response;
   try {
@@ -44,10 +51,17 @@ export async function wakeGrokBot(deps: WakeDeps, payload: WakePayload): Promise
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
   } catch (err) {
+    const aborted =
+      (err instanceof Error && err.name === "AbortError") ||
+      controller.signal.aborted;
+    if (aborted) return { ok: false, reason: "timeout" };
     const body = err instanceof Error ? err.message : String(err);
     return { ok: false, reason: "network", body };
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!res.ok) {

@@ -1,6 +1,7 @@
 import { Spectrum } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
+import { RecentIdSet } from "./bridge/dedup.ts";
 import {
   loadBridgeEnv,
   replyUrl,
@@ -9,6 +10,9 @@ import {
   wakeConfigured,
 } from "./bridge/env.ts";
 import { handleInbound } from "./bridge/inbound.ts";
+import { InFlightWatch } from "./bridge/inflight.ts";
+import { consoleLog } from "./bridge/log.ts";
+import { RateLimiter } from "./bridge/rate-limit.ts";
 import { TokenStore } from "./bridge/tokens.ts";
 import { wakeGrokBot } from "./bridge/wake.ts";
 import { createHttpApp, type HealthSnapshot } from "./http.ts";
@@ -34,12 +38,31 @@ const store = new TokenStore({
   now: () => Date.now(),
 });
 
+const rateLimiter = new RateLimiter({
+  capacity: 20,
+  windowMs: 60_000,
+  now: () => Date.now(),
+});
+
+const dedup = new RecentIdSet({
+  ttlMs: 120_000,
+  now: () => Date.now(),
+});
+
+const inflight = new InFlightWatch({
+  store,
+  delayMs: 120_000,
+});
+
 const health: HealthSnapshot = {
   spectrum: false,
   wake: wakeConfigured(env),
 };
 
-const http = createHttpApp(store, () => health);
+const http = createHttpApp(
+  { store, inflight, log: consoleLog },
+  () => health,
+);
 
 Bun.serve({
   port: env.port,
@@ -75,6 +98,11 @@ if (!spectrumConfigured(env)) {
     allowlist: env.allowlist,
     nowIso: () => new Date().toISOString(),
     uuid: () => crypto.randomUUID(),
+    rateLimiter,
+    dedup,
+    inflight,
+    log: consoleLog,
+    wakeTimeoutMs: 15_000,
   };
 
   void (async () => {
@@ -88,6 +116,7 @@ if (!spectrumConfigured(env)) {
             from: message.sender?.id ?? "unknown",
             platform: String(message.platform ?? "imessage"),
             isAgent: isAgentEcho(message),
+            messageId: message.id,
             space,
             message,
           },
