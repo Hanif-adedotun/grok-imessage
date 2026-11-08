@@ -229,7 +229,7 @@ Each epic merges only with: tests green, no unused exports, no comments that nar
 
 ## Epic 7 — MCP `send_reply`
 
-**Status:** In progress (`epic/7-mcp`)
+**Status:** Done (`epic/7-mcp`)
 
 **Goal:** Prefer structured MCP delivery over raw HTTP for Bot replies.
 
