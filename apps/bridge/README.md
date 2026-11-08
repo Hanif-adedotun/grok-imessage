@@ -20,6 +20,8 @@ Startup validates env pairs (Spectrum, wake, public base URL). Misconfiguration 
 | Echo | `PROJECT_ID` + `PROJECT_SECRET` | Inbound text → `echo: …` |
 | Wake | + `GROK_BOT_WEBHOOK_*` + `BRIDGE_PUBLIC_BASE_URL` | Wake Bot; reply via MCP `send_reply` or `POST /reply` |
 
+If the Bot has not replied after `INFLIGHT_NUDGE_MS` (default 5 min), the bridge texts you once per unanswered message so a lost reply is visible. Raise it when the Bot browses or uses its cloud computer; `INFLIGHT_NUDGE_MS=0` turns it off.
+
 ## Endpoints
 
 | Method | Path | Purpose |

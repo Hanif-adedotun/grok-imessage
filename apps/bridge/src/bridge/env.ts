@@ -10,6 +10,8 @@ export type BridgeEnv = {
   allowlist: Set<string> | null;
   pepper: string;
   ttlMs: number;
+  /** Delay before nudging the user that the Bot is still working. 0 disables it. */
+  nudgeMs: number;
   /** Optional bearer for Streamable HTTP MCP at `/mcp`. */
   mcpAuthToken: string | null;
 };
@@ -41,6 +43,11 @@ export function loadBridgeEnv(raw: RawEnv): BridgeEnv {
 
   const port = Number(raw.PORT ?? 3000);
 
+  // 0 switches the nudge off; anything unparseable falls back to the default.
+  const nudgeRaw = trimOrEmpty(raw.INFLIGHT_NUDGE_MS);
+  const nudge = nudgeRaw === "" ? Number.NaN : Number(nudgeRaw);
+  const nudgeMs = Number.isFinite(nudge) && nudge >= 0 ? nudge : 5 * 60 * 1000;
+
   return {
     port: Number.isFinite(port) && port > 0 ? port : 3000,
     projectId: trimOrNull(raw.PROJECT_ID),
@@ -51,6 +58,7 @@ export function loadBridgeEnv(raw: RawEnv): BridgeEnv {
     allowlist,
     pepper: trimOrNull(raw.REPLY_TOKEN_PEPPER) ?? "dev-only-pepper",
     ttlMs: 45 * 60 * 1000,
+    nudgeMs,
     mcpAuthToken: trimOrNull(raw.MCP_AUTH_TOKEN),
   };
 }
