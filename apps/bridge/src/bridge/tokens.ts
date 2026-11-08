@@ -68,6 +68,11 @@ export class TokenStore {
     return this.lookup(token, true);
   }
 
+  /** Drop a bound token (e.g. wake failed before reply). */
+  unbind(token: string): void {
+    this.records.delete(this.hash(token));
+  }
+
   private lookup(token: string, markConsumed: boolean): TokenLookupResult {
     const tokenHash = this.hash(token);
     const record = this.records.get(tokenHash);

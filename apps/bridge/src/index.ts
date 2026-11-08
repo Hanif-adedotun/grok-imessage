@@ -1,6 +1,7 @@
 import { Spectrum } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
+import { handleInbound } from "./bridge/inbound.ts";
 import { TokenStore } from "./bridge/tokens.ts";
 import { wakeGrokBot } from "./bridge/wake.ts";
 import { createHttpApp } from "./http.ts";
@@ -24,6 +25,11 @@ function publicReplyUrl(): string {
   return `${base}/reply`;
 }
 
+/** Outbound/agent echoes — skip so we do not re-wake on our own sends. */
+function isAgentEcho(message: { direction?: string }): boolean {
+  return message.direction === "outbound";
+}
+
 const store = new TokenStore({
   pepper: process.env.REPLY_TOKEN_PEPPER ?? "dev-only-pepper",
   ttlMs: 45 * 60 * 1000,
@@ -33,12 +39,12 @@ const store = new TokenStore({
 const port = Number(process.env.PORT ?? 3000);
 const http = createHttpApp(store);
 
-const server = Bun.serve({
+Bun.serve({
   port,
   fetch: http.fetch,
 });
 
-console.log(`[http] listening on :${server.port}`);
+console.log(`[http] listening on :${port}`);
 
 const projectId = process.env.PROJECT_ID;
 const projectSecret = process.env.PROJECT_SECRET;
@@ -48,7 +54,9 @@ if (!projectId || !projectSecret) {
     "[spectrum] PROJECT_ID / PROJECT_SECRET missing — HTTP /health and /reply are up; message loop not started. See .env.example",
   );
 } else {
-  const allow = allowedSenders();
+  const wakeUrl = process.env.GROK_BOT_WEBHOOK_URL ?? "";
+  const wakeKey = process.env.GROK_BOT_WEBHOOK_KEY ?? "";
+  const wakeConfigured = Boolean(wakeUrl.trim() && wakeKey.trim());
 
   const app = await Spectrum({
     projectId,
@@ -58,66 +66,34 @@ if (!projectId || !projectSecret) {
 
   console.log("[spectrum] connected — waiting for messages");
 
+  const inboundDeps = {
+    store,
+    wake: wakeGrokBot,
+    fetch,
+    wakeUrl,
+    wakeKey,
+    replyUrl: wakeConfigured ? publicReplyUrl() : "http://127.0.0.1/unused",
+    allowlist: allowedSenders(),
+    nowIso: () => new Date().toISOString(),
+    uuid: () => crypto.randomUUID(),
+  };
+
   void (async () => {
     for await (const [space, message] of app.messages) {
       try {
-        if (message.content.type !== "text") continue;
-
-        const from = message.sender?.id ?? "unknown";
-        if (allow && !allow.has(from)) {
-          console.log(`[inbound] ignored sender ${from}`);
-          continue;
-        }
-
-        const text = message.content.text.trim();
-        if (!text) continue;
-
-        const useWake = Boolean(process.env.GROK_BOT_WEBHOOK_URL && process.env.GROK_BOT_WEBHOOK_KEY);
-
-        if (!useWake) {
-          await space.responding(async () => {
-            await message.reply(`echo: ${text}`);
-          });
-          continue;
-        }
-
-        const replyToken = store.mint();
-        const correlationId = crypto.randomUUID();
-        store.bind(replyToken, {
-          space,
-          message,
-          from,
-          correlationId,
-        });
-
-        const wake = await wakeGrokBot(
+        const contentType = message.content.type;
+        await handleInbound(
           {
-            fetch,
-            url: process.env.GROK_BOT_WEBHOOK_URL ?? "",
-            key: process.env.GROK_BOT_WEBHOOK_KEY ?? "",
-          },
-          {
-            text,
-            from,
+            contentType,
+            text: contentType === "text" ? message.content.text : "",
+            from: message.sender?.id ?? "unknown",
             platform: String(message.platform ?? "imessage"),
-            reply_url: publicReplyUrl(),
-            reply_token: replyToken,
-            correlation_id: correlationId,
-            sent_at: new Date().toISOString(),
+            isAgent: isAgentEcho(message),
+            space,
+            message,
           },
+          inboundDeps,
         );
-
-        if (!wake.ok) {
-          console.error("[wake] failed", wake);
-          await space.send("Couldn't reach your Grok Bot just now. Try again in a bit.");
-          continue;
-        }
-
-        try {
-          await message.react("like");
-        } catch {
-          // tapbacks are best-effort
-        }
       } catch (err) {
         console.error("[inbound] error", err);
       }

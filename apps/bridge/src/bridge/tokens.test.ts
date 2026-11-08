@@ -101,6 +101,18 @@ describe("TokenStore.resolve + consume", () => {
     }
   });
 
+  test("unbind drops a bound token", () => {
+    const s = new TokenStore({
+      pepper: "test-pepper",
+      ttlMs: 60_000,
+      now: () => 1,
+    });
+    const token = s.mint();
+    s.bind(token, binding());
+    s.unbind(token);
+    expect(s.resolve(token)).toEqual({ ok: false, reason: "invalid" });
+  });
+
   test("wrong pepper cannot resolve tokens bound under another pepper", () => {
     const records = new Map();
     const a = new TokenStore({

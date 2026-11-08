@@ -147,6 +147,8 @@ wakeGrokBot(deps: { fetch; url; key }, payload: WakePayload)
 
 ## Epic 4 — Inbound policy & orchestration
 
+**Status:** Done (`epic/4-inbound`)
+
 **Goal:** Decide what happens to each Spectrum message without the Spectrum SDK in unit tests.
 
 **API (sketch)**
