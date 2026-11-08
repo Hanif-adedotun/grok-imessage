@@ -180,6 +180,8 @@ handleInbound(input: InboundMessage, deps: Deps): Promise<InboundResult>
 
 ## Epic 5 — Process wiring & live smoke
 
+**Status:** Done (`epic/5-wiring`)
+
 **Goal:** Runnable bridge against Spectrum (terminal and/or real iMessage line).
 
 **Deliverables**

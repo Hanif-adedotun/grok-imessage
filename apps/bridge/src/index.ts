@@ -1,79 +1,78 @@
 import { Spectrum } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
+import {
+  loadBridgeEnv,
+  replyUrl,
+  spectrumConfigured,
+  validateBridgeEnv,
+  wakeConfigured,
+} from "./bridge/env.ts";
 import { handleInbound } from "./bridge/inbound.ts";
 import { TokenStore } from "./bridge/tokens.ts";
 import { wakeGrokBot } from "./bridge/wake.ts";
-import { createHttpApp } from "./http.ts";
-
-function allowedSenders(): Set<string> | null {
-  const raw = process.env.ALLOWED_SENDERS?.trim();
-  if (!raw) return null;
-  return new Set(
-    raw
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
-  );
-}
-
-function publicReplyUrl(): string {
-  const base = process.env.BRIDGE_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (!base) {
-    throw new Error("BRIDGE_PUBLIC_BASE_URL is required to build reply_url for Grok Bot");
-  }
-  return `${base}/reply`;
-}
+import { createHttpApp, type HealthSnapshot } from "./http.ts";
 
 /** Outbound/agent echoes — skip so we do not re-wake on our own sends. */
 function isAgentEcho(message: { direction?: string }): boolean {
   return message.direction === "outbound";
 }
 
+const env = loadBridgeEnv(process.env);
+const issues = validateBridgeEnv(env);
+for (const issue of issues) {
+  console.error(`[env] ${issue.field}: ${issue.message}`);
+}
+if (issues.length > 0) {
+  console.error("[env] fix the issues above, then restart");
+  process.exit(1);
+}
+
 const store = new TokenStore({
-  pepper: process.env.REPLY_TOKEN_PEPPER ?? "dev-only-pepper",
-  ttlMs: 45 * 60 * 1000,
+  pepper: env.pepper,
+  ttlMs: env.ttlMs,
   now: () => Date.now(),
 });
 
-const port = Number(process.env.PORT ?? 3000);
-const http = createHttpApp(store);
+const health: HealthSnapshot = {
+  spectrum: false,
+  wake: wakeConfigured(env),
+};
+
+const http = createHttpApp(store, () => health);
 
 Bun.serve({
-  port,
+  port: env.port,
   fetch: http.fetch,
 });
 
-console.log(`[http] listening on :${port}`);
+console.log(`[http] listening on :${env.port}`);
+console.log(
+  `[health] spectrum=${health.spectrum} wake=${health.wake} (GET /health)`,
+);
 
-const projectId = process.env.PROJECT_ID;
-const projectSecret = process.env.PROJECT_SECRET;
-
-if (!projectId || !projectSecret) {
+if (!spectrumConfigured(env)) {
   console.warn(
     "[spectrum] PROJECT_ID / PROJECT_SECRET missing — HTTP /health and /reply are up; message loop not started. See .env.example",
   );
 } else {
-  const wakeUrl = process.env.GROK_BOT_WEBHOOK_URL ?? "";
-  const wakeKey = process.env.GROK_BOT_WEBHOOK_KEY ?? "";
-  const wakeConfigured = Boolean(wakeUrl.trim() && wakeKey.trim());
-
   const app = await Spectrum({
-    projectId,
-    projectSecret,
+    projectId: env.projectId!,
+    projectSecret: env.projectSecret!,
     providers: [imessage.config(), terminal.config()],
   });
 
+  health.spectrum = true;
   console.log("[spectrum] connected — waiting for messages");
 
   const inboundDeps = {
     store,
     wake: wakeGrokBot,
     fetch,
-    wakeUrl,
-    wakeKey,
-    replyUrl: wakeConfigured ? publicReplyUrl() : "http://127.0.0.1/unused",
-    allowlist: allowedSenders(),
+    wakeUrl: env.wakeUrl,
+    wakeKey: env.wakeKey,
+    replyUrl: wakeConfigured(env) ? replyUrl(env) : "http://127.0.0.1/unused",
+    allowlist: env.allowlist,
     nowIso: () => new Date().toISOString(),
     uuid: () => crypto.randomUUID(),
   };
