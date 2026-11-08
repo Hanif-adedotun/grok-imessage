@@ -49,10 +49,8 @@ const dedup = new RecentIdSet({
   now: () => Date.now(),
 });
 
-const inflight = new InFlightWatch({
-  store,
-  delayMs: 120_000,
-});
+const inflight =
+  env.nudgeMs > 0 ? new InFlightWatch({ store, delayMs: env.nudgeMs }) : undefined;
 
 const health: HealthSnapshot = {
   spectrum: false,
@@ -73,6 +71,11 @@ Bun.serve({
 console.log(`[http] listening on :${env.port}`);
 console.log(
   `[health] spectrum=${health.spectrum} wake=${health.wake} (GET /health)`,
+);
+console.log(
+  env.nudgeMs > 0
+    ? `[inflight] nudge after ${Math.round(env.nudgeMs / 1000)}s without a reply (INFLIGHT_NUDGE_MS)`
+    : "[inflight] nudge disabled (INFLIGHT_NUDGE_MS=0)",
 );
 
 if (!spectrumConfigured(env)) {

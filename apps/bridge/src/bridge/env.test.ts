@@ -22,6 +22,21 @@ describe("loadBridgeEnv", () => {
     expect(env.replyBaseUrl).toBeNull();
     expect(env.allowlist).toBeNull();
     expect(env.mcpAuthToken).toBeNull();
+    expect(env.nudgeMs).toBe(5 * 60 * 1000);
+  });
+
+  test("reads INFLIGHT_NUDGE_MS", () => {
+    expect(loadBridgeEnv(raw({ INFLIGHT_NUDGE_MS: " 600000 " })).nudgeMs).toBe(600_000);
+  });
+
+  test("INFLIGHT_NUDGE_MS=0 disables the nudge", () => {
+    expect(loadBridgeEnv(raw({ INFLIGHT_NUDGE_MS: "0" })).nudgeMs).toBe(0);
+  });
+
+  test("falls back to the default for unusable INFLIGHT_NUDGE_MS", () => {
+    for (const value of ["abc", "-1", ""]) {
+      expect(loadBridgeEnv(raw({ INFLIGHT_NUDGE_MS: value })).nudgeMs).toBe(5 * 60 * 1000);
+    }
   });
 
   test("parses allowlist and trims", () => {
