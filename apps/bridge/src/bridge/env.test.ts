@@ -21,6 +21,7 @@ describe("loadBridgeEnv", () => {
     expect(env.wakeKey).toBe("");
     expect(env.replyBaseUrl).toBeNull();
     expect(env.allowlist).toBeNull();
+    expect(env.mcpAuthToken).toBeNull();
   });
 
   test("parses allowlist and trims", () => {
@@ -34,6 +35,7 @@ describe("loadBridgeEnv", () => {
         GROK_BOT_WEBHOOK_KEY: " key ",
         BRIDGE_PUBLIC_BASE_URL: " https://bridge.example.com/ ",
         REPLY_TOKEN_PEPPER: "pep",
+        MCP_AUTH_TOKEN: " mcp-secret ",
       }),
     );
     expect(env.port).toBe(4000);
@@ -43,6 +45,7 @@ describe("loadBridgeEnv", () => {
     expect(env.wakeKey).toBe("key");
     expect(env.replyBaseUrl).toBe("https://bridge.example.com");
     expect(env.pepper).toBe("pep");
+    expect(env.mcpAuthToken).toBe("mcp-secret");
     expect([...env.allowlist!]).toEqual(["+1a", "+1b"]);
   });
 });
