@@ -11,12 +11,22 @@ function testStore() {
 }
 
 describe("GET /health", () => {
-  test("returns ok", async () => {
-    const app = createHttpApp(testStore());
+  test("returns ok with spectrum/wake flags", async () => {
+    const app = createHttpApp(testStore(), () => ({
+      spectrum: true,
+      wake: false,
+    }));
     const res = await app.request("/health");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; service: string };
+    const body = (await res.json()) as {
+      ok: boolean;
+      service: string;
+      spectrum: boolean;
+      wake: boolean;
+    };
     expect(body.ok).toBe(true);
     expect(body.service).toBe("grok-imessage-bridge");
+    expect(body.spectrum).toBe(true);
+    expect(body.wake).toBe(false);
   });
 });
