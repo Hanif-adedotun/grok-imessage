@@ -28,8 +28,8 @@ describe("TokenStore.mint", () => {
   });
 });
 
-describe("TokenStore.bind + consume", () => {
-  test("returns binding once", () => {
+describe("TokenStore.resolve + consume", () => {
+  test("resolve returns binding without consuming", () => {
     const s = new TokenStore({
       pepper: "test-pepper",
       ttlMs: 60_000,
@@ -39,20 +39,23 @@ describe("TokenStore.bind + consume", () => {
     const b = binding({ correlationId: "c-42" });
     s.bind(token, b);
 
-    expect(s.consume(token)).toEqual({ ok: true, binding: b });
+    expect(s.resolve(token)).toEqual({ ok: true, binding: b });
+    expect(s.resolve(token)).toEqual({ ok: true, binding: b });
   });
 
-  test("second consume → consumed", () => {
+  test("consume marks one-shot; second consume → consumed", () => {
     const s = new TokenStore({
       pepper: "test-pepper",
       ttlMs: 60_000,
       now: () => 1_000_000,
     });
     const token = s.mint();
-    s.bind(token, binding());
+    const b = binding();
+    s.bind(token, b);
 
-    expect(s.consume(token).ok).toBe(true);
+    expect(s.consume(token)).toEqual({ ok: true, binding: b });
     expect(s.consume(token)).toEqual({ ok: false, reason: "consumed" });
+    expect(s.resolve(token)).toEqual({ ok: false, reason: "consumed" });
   });
 
   test("unknown token → invalid", () => {
@@ -61,7 +64,7 @@ describe("TokenStore.bind + consume", () => {
       ttlMs: 60_000,
       now: () => 1,
     });
-    expect(s.consume("no-such-token")).toEqual({ ok: false, reason: "invalid" });
+    expect(s.resolve("no-such-token")).toEqual({ ok: false, reason: "invalid" });
   });
 
   test("expired (fake clock) → expired and entry dropped", () => {
@@ -75,8 +78,8 @@ describe("TokenStore.bind + consume", () => {
     s.bind(token, binding());
 
     now = 1_000_000 + 1_001;
-    expect(s.consume(token)).toEqual({ ok: false, reason: "expired" });
-    expect(s.consume(token)).toEqual({ ok: false, reason: "invalid" });
+    expect(s.resolve(token)).toEqual({ ok: false, reason: "expired" });
+    expect(s.resolve(token)).toEqual({ ok: false, reason: "invalid" });
   });
 
   test("hash at rest: raw token never stored", () => {
@@ -98,7 +101,19 @@ describe("TokenStore.bind + consume", () => {
     }
   });
 
-  test("wrong pepper cannot consume tokens bound under another pepper", () => {
+  test("unbind drops a bound token", () => {
+    const s = new TokenStore({
+      pepper: "test-pepper",
+      ttlMs: 60_000,
+      now: () => 1,
+    });
+    const token = s.mint();
+    s.bind(token, binding());
+    s.unbind(token);
+    expect(s.resolve(token)).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  test("wrong pepper cannot resolve tokens bound under another pepper", () => {
     const records = new Map();
     const a = new TokenStore({
       pepper: "pepper-a",
@@ -115,7 +130,7 @@ describe("TokenStore.bind + consume", () => {
     const token = a.mint();
     a.bind(token, binding());
 
-    expect(b.consume(token)).toEqual({ ok: false, reason: "invalid" });
-    expect(a.consume(token).ok).toBe(true);
+    expect(b.resolve(token)).toEqual({ ok: false, reason: "invalid" });
+    expect(a.resolve(token).ok).toBe(true);
   });
 });

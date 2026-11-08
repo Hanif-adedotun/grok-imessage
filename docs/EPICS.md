@@ -115,6 +115,8 @@ wakeGrokBot(deps: { fetch; url; key }, payload: WakePayload)
 
 ## Epic 3 — `POST /reply` HTTP
 
+**Status:** Done (`epic/3-reply-http`)
+
 **Goal:** Bot/MCP callback delivers text to the bound Space exactly once.
 
 **Tests first** (Hono `app.request`)
@@ -144,6 +146,8 @@ wakeGrokBot(deps: { fetch; url; key }, payload: WakePayload)
 ---
 
 ## Epic 4 — Inbound policy & orchestration
+
+**Status:** Done (`epic/4-inbound`)
 
 **Goal:** Decide what happens to each Spectrum message without the Spectrum SDK in unit tests.
 
