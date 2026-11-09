@@ -14,7 +14,7 @@ const FLY = { in: 0, zoom: 620, log: 860, compose: 1040 };
 /** How long the finished conversation rests before the loop starts over. */
 const LOOP_PAUSE = 4000;
 
-export type Thread = { replay: () => void };
+export type Thread = { replay: () => void; destroy: () => void };
 
 export function initThread(): Thread | null {
   const root = document.querySelector<HTMLElement>("[data-thread-window]");
@@ -281,17 +281,19 @@ export function initThread(): Thread | null {
   settle();
   document.documentElement.dataset.ready = "on";
 
-  replayButton?.addEventListener("click", () => {
+  const onReplay = () => {
     active = looping;
     play();
-  });
+  };
+  replayButton?.addEventListener("click", onReplay);
 
-  document.addEventListener("visibilitychange", () => {
+  const onVisibility = () => {
     if (document.hidden) pause();
     else resume();
-  });
+  };
+  document.addEventListener("visibilitychange", onVisibility);
 
-  inView(
+  const stopInView = inView(
     root,
     () => {
       onScreen = true;
@@ -306,5 +308,14 @@ export function initThread(): Thread | null {
     { amount: 0.5 },
   );
 
-  return { replay: play };
+  return {
+    replay: play,
+    destroy() {
+      active = false;
+      clear();
+      stopInView();
+      replayButton?.removeEventListener("click", onReplay);
+      document.removeEventListener("visibilitychange", onVisibility);
+    },
+  };
 }

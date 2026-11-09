@@ -1,0 +1,118 @@
+---
+import Docs from "../../layouts/Docs.astro";
+import Snippet from "../../components/Snippet.astro";
+
+const toc = [
+  { id: "create", label: "Create the routine" },
+  { id: "prompt", label: "Paste the prompt" },
+  { id: "connector", label: "Add the connector" },
+  { id: "payload", label: "What the Bot receives" },
+];
+
+const payload = `
+{
+  "text": "what's on my calendar tomorrow?",
+  "from": "<spectrum sender id>",
+  "platform": "imessage",
+  "reply_url": "https://your-bridge.example.com/reply",
+  "reply_token": "<32 random bytes, base64url>",
+  "correlation_id": "<uuid>",
+  "sent_at": "2026-11-09T05:26:00.000Z",
+  "message_id": "<spectrum message id>"
+}
+`;
+
+const prompt = `
+You are being woken by my iMessage bridge. The webhook body is JSON with these
+fields: text, from, platform, reply_url, reply_token, correlation_id, sent_at,
+message_id.
+
+Treat \`text\` as a message I sent you over iMessage. Answer it the way you
+normally would: use your memory, your skills, your cloud computer, and any tool
+you would use in a normal conversation. Do the actual work. Do not reply with a
+plan to do the work.
+
+When you have the final answer, deliver it by calling the MCP tool send_reply on
+the grok-imessage-bridge connector:
+
+  send_reply(
+    text:           <your complete answer>,
+    reply_token:    <the reply_token value from THIS webhook body>,
+    correlation_id: <the correlation_id value from THIS webhook body>
+  )
+
+Rules for that call:
+
+1. Use the reply_token from this run only. Never one from an earlier run, never
+   one you remember, never one you construct. It is single use and already bound
+   to the chat the message came from. You do not choose the recipient.
+
+2. Send the complete answer, verbatim. Put the whole thing in text. Do not
+   summarise it, trim it, or send a short version with "let me know if you want
+   the details". If the answer is long, it is long.
+
+3. Plain text only. iMessage renders no markdown. No bold, no italics, no
+   backticks, no headings, no [text](links), no tables, no code fences. Use blank
+   lines and ordinary dashes for structure, and write URLs bare.
+
+4. Call send_reply exactly once per run. The token is consumed on the first
+   successful call; a second returns {"ok":false,"error":"consumed"} and sends
+   nothing. If a call returns ok:false with "invalid" or "expired", stop. Do not
+   retry with a different token and do not try another delivery route.
+
+5. Deliver only through send_reply, or the fallback below. Do not email, message
+   or post the answer anywhere else.
+
+If the send_reply tool is unavailable, fall back to HTTP: POST the value of
+reply_url with header Authorization: Bearer <reply_token>, header
+Content-Type: application/json, and body
+{"text": "<your complete answer>", "correlation_id": "<correlation_id>"}.
+Put the token in the header, never in the URL or a query string.
+`;
+---
+
+<Docs
+  title="The Grok Bot routine"
+  eyebrow="Guide"
+  description="One routine, one prompt and one connector. That is all the Bot side needs."
+  toc={toc}
+>
+  <h2 id="create">Create the routine</h2>
+
+  <p>
+    On your Bot, create a routine with a <strong>webhook</strong> trigger. Copy its URL and key into
+    <code>GROK_BOT_WEBHOOK_URL</code> and <code>GROK_BOT_WEBHOOK_KEY</code>.
+  </p>
+
+  <h2 id="prompt">Paste the prompt</h2>
+
+  <p>
+    Use this as the routine's instruction. It stops the Bot from answering in its own thread or
+    sending a shortened summary.
+  </p>
+
+  <Snippet lang="prompt" code={prompt} />
+
+  <h2 id="connector">Add the connector</h2>
+
+  <p>
+    Register <code>https://&lt;your base URL&gt;/mcp</code> as a custom MCP connector on the Bot. It exposes
+    one tool, <code>send_reply</code>. If the Bot's auto-review has an allowlist, add the connector to it.
+  </p>
+
+  <div class="note warn">
+    <span class="note-label">Set MCP_AUTH_TOKEN</span>
+    <p>
+      Without it, <code>/mcp</code> is open to anyone who can reach your tunnel. Use the same value as the
+      connector's Bearer token.
+    </p>
+  </div>
+
+  <h2 id="payload">What the Bot receives</h2>
+
+  <Snippet lang="json" code={payload} />
+
+  <p>
+    The token is bound to the chat the message came from, so the Bot can only ever reply there.
+  </p>
+</Docs>
