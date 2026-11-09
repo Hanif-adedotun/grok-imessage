@@ -1,0 +1,95 @@
+---
+import Docs from "../../layouts/Docs.astro";
+import Snippet from "../../components/Snippet.astro";
+
+const toc = [
+  { id: "install", label: "1. Install" },
+  { id: "echo", label: "2. Prove echo" },
+  { id: "expose", label: "3. Go public" },
+  { id: "wake", label: "4. Wake your Bot" },
+  { id: "stuck", label: "If nothing comes back" },
+];
+
+const install = `
+git clone https://github.com/Hanif-adedotun/grok-imessage.git
+cd grok-imessage
+bun install
+cp .env.example .env
+`;
+
+const env = `
+# .env at the repo root
+PROJECT_ID=...                      # step 2, from app.photon.codes
+PROJECT_SECRET=...
+BRIDGE_PUBLIC_BASE_URL=https://...  # step 3, no trailing slash
+GROK_BOT_WEBHOOK_URL=...            # step 4, from the routine panel
+GROK_BOT_WEBHOOK_KEY=...
+MCP_AUTH_TOKEN=...                  # recommended once the bridge is public
+`;
+
+const run = `
+bun run dev:bridge
+curl -s localhost:3000/health
+# {"ok":true,"service":"grok-imessage-bridge","spectrum":true,"wake":false}
+`;
+---
+
+<Docs
+  title="Setup"
+  eyebrow="Guide"
+  description="Four steps from clone to a reply in your thread. Prove each one before the next."
+  toc={toc}
+>
+  <p>
+    You need Bun 1.1+, a <a href="https://app.photon.codes">Spectrum</a> project with an iMessage line,
+    and a Grok Bot whose routines you can edit. Everything is configured in one file:
+  </p>
+
+  <Snippet lang="env" code={env} />
+
+  <h2 id="install">1. Install</h2>
+
+  <Snippet code={install} />
+
+  <h2 id="echo">2. Prove echo works</h2>
+
+  <p>Fill in the two Spectrum values, then start the bridge:</p>
+
+  <Snippet code={run} />
+
+  <p>
+    Text your Spectrum line and you should get <code>echo: …</code> back. That proves credentials, line
+    and loop before the Bot is involved.
+  </p>
+
+  <h2 id="expose">3. Go public</h2>
+
+  <p>
+    Your Bot has to reach the bridge. Run <code>cloudflared tunnel --url http://localhost:3000</code> and put
+    the printed URL in <code>BRIDGE_PUBLIC_BASE_URL</code>.
+  </p>
+
+  <h2 id="wake">4. Wake your Bot</h2>
+
+  <p>
+    <a href="/docs/routine/">Create the routine</a>, add its webhook URL and key to <code>.env</code>, and
+    restart. <code>/health</code> now reports <code>"wake":true</code>. Text the line: you get a tapback
+    "like", then the Bot's answer.
+  </p>
+
+  <h2 id="stuck">If nothing comes back</h2>
+
+  <ul>
+    <li>
+      <strong>No tapback at all:</strong> clear <code>ALLOWED_SENDERS</code>. A mismatch drops messages
+      silently.
+    </li>
+    <li>
+      <strong>Tapback, then silence:</strong> the tunnel URL changed. Update the base URL, restart, and
+      update the Bot's connector.
+    </li>
+    <li>
+      <strong>"Couldn't reach your Grok Bot":</strong> the webhook URL or key is wrong.
+    </li>
+  </ul>
+</Docs>

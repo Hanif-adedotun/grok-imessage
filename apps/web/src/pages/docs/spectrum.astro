@@ -1,0 +1,57 @@
+---
+import Docs from "../../layouts/Docs.astro";
+import Snippet from "../../components/Snippet.astro";
+
+const toc = [
+  { id: "credentials", label: "Credentials" },
+  { id: "lines", label: "Which number to text" },
+  { id: "primitives", label: "What the bridge uses" },
+];
+
+const env = `
+PROJECT_ID=...
+PROJECT_SECRET=...
+`;
+---
+
+<Docs
+  title="Spectrum"
+  eyebrow="Reference"
+  description="Spectrum is Photon's managed iMessage provider. It owns the line; the bridge only reads messages and sends replies."
+  toc={toc}
+>
+  <h2 id="credentials">Credentials</h2>
+
+  <p>Create a project at <a href="https://app.photon.codes">app.photon.codes</a> and copy its id and secret:</p>
+
+  <Snippet lang="env" code={env} />
+
+  <p>
+    Set both or neither; one alone stops the bridge at startup. Rotate the secret with
+    <code>photon projects regenerate-secret</code>.
+  </p>
+
+  <h2 id="lines">Which number to text</h2>
+
+  <p>
+    Your project's line is the iMessage address you text. Find it in the Photon dashboard or with
+    <code>photon spectrum lines list</code>.
+  </p>
+
+  <h2 id="primitives">What the bridge uses</h2>
+
+  <table>
+    <thead>
+      <tr><th>Call</th><th>For</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>app.messages</code></td><td>The inbound message stream</td></tr>
+      <tr><td><code>space.send</code></td><td>Every outbound text, including the Bot's reply</td></tr>
+      <tr><td><code>message.react</code></td><td>The "like" tapback when the Bot is woken</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    Full SDK reference: <a href="https://photon.codes/docs/spectrum-ts">photon.codes/docs/spectrum-ts</a>.
+  </p>
+</Docs>

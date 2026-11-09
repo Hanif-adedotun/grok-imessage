@@ -1,8 +1,9 @@
 ---
+import Site from "../layouts/Site.astro";
+import BotFace from "../components/BotFace.astro";
 import { clockFor, conversations, traceFor } from "../data/conversations";
 
 const repo = "https://github.com/Hanif-adedotun/grok-imessage";
-const architecture = `${repo}/blob/main/docs/ARCHITECTURE.md`;
 
 const title = "grok-imessage — text your Grok Bot from iMessage";
 const description =
@@ -19,208 +20,168 @@ const modes = [
 ];
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="description" content={description} />
-    <meta name="generator" content={Astro.generator} />
-    <title>{title}</title>
-    <script is:inline>
-      // The hero animates itself in, so hide it until the script is ready — and
-      // put it back if that script never arrives.
-      document.documentElement.dataset.js = "on";
-      setTimeout(function () {
-        if (!document.documentElement.dataset.ready) {
-          delete document.documentElement.dataset.js;
-        }
-      }, 2000);
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      :root {
-        --deep: #07080d;
-        --bg: #0b0d14;
-        --surface: #11141c;
-        --raised: #1a1e28;
-        --fg: #eef0f5;
-        --fg-2: #a3a9b8;
-        --fg-3: #7a8296;
-        --line: rgba(238, 240, 245, 0.08);
-        --line-strong: rgba(238, 240, 245, 0.14);
-        --accent: #0b6bdb;
-        --ease: cubic-bezier(0.22, 1, 0.36, 1);
-        --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-        --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
-      }
+<Site title={title} description={description}>
+    <main>
+      <section class="hero" data-thread-window data-log-state="idle" data-compose-state="idle">
+        <div class="hero-text">
+          <a class="pill enter" href="https://x.ai/bot" data-cuelume-tap>
+            <strong>An extension for Grok Bot</strong>
+            <span class="pill-sep" aria-hidden="true">•</span>
+            <span>Meet Grok Bot</span>
+            <span class="pill-arrow" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <path d="M3 7 7 3M3.5 3H7v3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+          </a>
+          <h1 class="enter">Text your <BotFace class="h1-face" /> Grok Bot from iMessage</h1>
+          <p class="lede enter">
+            Spectrum takes the message off your line, the bridge wakes your Bot's routine, and the
+            answer arrives in the same thread. Memory, skills and the cloud computer stay on the
+            Bot.
+          </p>
+          <div class="actions enter">
+            <a class="btn btn-primary" href={repo} data-cuelume-tap>
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.19c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
+                ></path>
+              </svg>
+              View on GitHub
+            </a>
+            <a
+              class="btn btn-secondary"
+              href="/docs/"
+              data-cuelume-navigate
+              data-cuelume-emphasis="subtle">Read the docs</a
+            >
+          </div>
+          <p class="meta enter">MIT · Bun and TypeScript · scaffold on main</p>
+          <div class="log">
+            <p class="log-head">
+              <span>bridge log</span>
+              <span class="log-meta">
+                <span class="log-status">
+                  <span class="log-dot" aria-hidden="true"></span>
+                  <span data-log-status>idle</span>
+                </span>
+                <button class="replay" type="button" data-replay data-cuelume-tap data-cuelume-emphasis="subtle">
+                  Replay
+                </button>
+              </span>
+            </p>
+            <ol class="trace">
+              {
+                trace.map((row) => (
+                  <li data-log-row>
+                    <time>{row.at}</time>
+                    <span class="actor">{row.actor}</span>
+                    <span class="event">{row.event}</span>
+                    <span class="delta">{row.delta}</span>
+                  </li>
+                ))
+              }
+            </ol>
+            <span class="caret" aria-hidden="true"></span>
+          </div>
+        </div>
 
-      * {
-        box-sizing: border-box;
-      }
+        <div class="stage">
 
-      [hidden] {
-        display: none !important;
-      }
+          <figure class="phone" data-phone>
+            <span class="island" aria-hidden="true"></span>
 
-      [data-js="on"] .phone,
-      [data-js="on"] .log {
-        opacity: 0;
-      }
+            <div class="screen">
+              <div class="statusbar" aria-hidden="true">
+                <span data-clock>{clock}</span>
+                <span class="indicators">
+                  <svg width="15" height="10" viewBox="0 0 15 10" fill="currentColor">
+                    <rect x="0" y="6" width="3" height="4" rx="1"></rect>
+                    <rect x="4" y="4" width="3" height="6" rx="1"></rect>
+                    <rect x="8" y="2" width="3" height="8" rx="1"></rect>
+                    <rect x="12" y="0" width="3" height="10" rx="1"></rect>
+                  </svg>
+                  <svg width="13" height="10" viewBox="0 0 13 10" fill="currentColor">
+                    <path d="M6.5 8.6 4.9 6.9a2.4 2.4 0 0 1 3.2 0z"></path>
+                    <path d="M6.5 3.1c1.5 0 2.9.6 3.9 1.6l-1 1.1a4.1 4.1 0 0 0-5.8 0l-1-1.1a5.5 5.5 0 0 1 3.9-1.6z"></path>
+                    <path d="M6.5 0c2.3 0 4.4 1 5.9 2.5l-1 1.1a6.9 6.9 0 0 0-9.8 0L.6 2.5A8.2 8.2 0 0 1 6.5 0z"></path>
+                  </svg>
+                  <svg width="22" height="11" viewBox="0 0 22 11" fill="currentColor">
+                    <rect x=".5" y=".5" width="18" height="10" rx="3" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+                    <rect x="2" y="2" width="12" height="7" rx="1.8"></rect>
+                    <path d="M20 4v3a1.6 1.6 0 0 0 0-3z" fill-opacity=".45"></path>
+                  </svg>
+                </span>
+              </div>
 
-      html,
-      body {
-        margin: 0;
-        min-height: 100%;
-      }
+              <figcaption class="appbar">
+                <svg class="appbar-back" width="8" height="14" viewBox="0 0 8 14" aria-hidden="true">
+                  <path d="M7 1 1 7l6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <span class="avatar" aria-hidden="true"><BotFace /></span>
+                <span class="appbar-name">Grok Bot</span>
+              </figcaption>
 
-      body {
-        background: var(--bg);
-        color: var(--fg);
-        font-family: var(--sans);
-        font-size: 15px;
-        line-height: 1.5;
-        -webkit-font-smoothing: antialiased;
-      }
+              <div class="thread" data-thread>
+                <p class="day">iMessage · Today <span data-day>{clock}</span></p>
+                <div class="bubble out" data-step="out">{opening.question}</div>
+                <p class="receipt" data-step="receipt">Delivered</p>
+                <div class="bubble in typing" data-step="typing" aria-hidden="true" hidden>
+                  <span class="dot" data-dot></span>
+                  <span class="dot" data-dot></span>
+                  <span class="dot" data-dot></span>
+                </div>
+                <div class="bubble in" data-step="in">{opening.reply}</div>
+              </div>
 
-      a {
-        color: inherit;
-        text-decoration: none;
-      }
+              <div class="compose" aria-hidden="true">
+                <span class="field">
+                  <span class="compose-text" data-compose></span><span class="compose-caret"></span>
+                </span>
+                <span class="send">
+                  <svg width="14" height="14" viewBox="0 0 24 24">
+                    <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </figure>
+        </div>
 
-      :focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-        border-radius: 4px;
-      }
+      </section>
 
-      .shell {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 32px;
-      }
+      <section class="run" id="run">
+        <div>
+          <h2>Run the bridge</h2>
+          <p>
+            Clone the repo, drop your Spectrum credentials into <code>.env</code>, and start the
+            two processes. How much the bridge does depends on what you fill in.
+          </p>
+          <pre><code><span class="cmd">git clone {repo}</span>
+<span class="cmd">cd grok-imessage && bun install</span>
+<span class="cmd">cp .env.example .env</span>
 
-      /* Navigation */
+<span class="cmd">bun run dev:bridge</span>
+<span class="cmd">bun run dev:web</span></code></pre>
+        </div>
 
-      .nav {
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-      }
+        <div class="modes">
+          {
+            modes.map((mode) => (
+              <div class="mode">
+                <span class="mode-name">{mode.name}</span>
+                <span class="mode-env">{mode.env}</span>
+                <span class="mode-does">{mode.does}</span>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+</Site>
 
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-family: var(--mono);
-        font-size: 14px;
-      }
-
-      .mark {
-        color: var(--accent);
-        flex: none;
-      }
-
-      .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-      }
-
-      .nav-links a {
-        color: var(--fg-2);
-        font-size: 14px;
-        transition: color 150ms var(--ease);
-      }
-
-      .nav-links a:hover {
-        color: var(--fg);
-      }
-
-      /* Buttons */
-
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        height: 48px;
-        padding: 0 20px;
-        border-radius: 10px;
-        border: 1px solid transparent;
-        font-size: 15px;
-        font-weight: 500;
-        transition:
-          background-color 150ms var(--ease),
-          border-color 150ms var(--ease),
-          color 150ms var(--ease),
-          transform 120ms var(--ease);
-      }
-
-      .btn:active {
-        transform: scale(0.98);
-      }
-
-      button.btn {
-        font: inherit;
-        cursor: pointer;
-      }
-
-      .btn.sound {
-        background: transparent;
-        border-color: transparent;
-        color: var(--fg-2);
-      }
-
-      .btn.sound:hover {
-        color: var(--fg);
-        border-color: var(--line);
-      }
-
-      .sound[aria-pressed="true"] {
-        background: var(--raised);
-        border-color: var(--line);
-        color: var(--fg);
-      }
-
-      .sound[aria-pressed="false"] .sound-wave,
-      .sound[aria-pressed="true"] .sound-mute {
-        display: none;
-      }
-
-      .btn-primary {
-        background: var(--fg);
-        color: var(--deep);
-      }
-
-      .btn-primary:hover {
-        background: #ffffff;
-      }
-
-      .btn-secondary {
-        background: var(--raised);
-        border-color: var(--line);
-        color: var(--fg);
-      }
-
-      .btn-secondary:hover {
-        border-color: var(--line-strong);
-      }
-
-      .btn-small {
-        height: 36px;
-        padding: 0 14px;
-        border-radius: 8px;
-        font-size: 14px;
-      }
-
+<style>
       /* Hero */
 
       .hero {
@@ -232,21 +193,65 @@ const modes = [
         padding: 48px 0 128px;
       }
 
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 100%;
+        margin-bottom: 20px;
+        padding: 6px 6px 6px 12px;
+        border-radius: 9999px;
+        background: rgba(26, 26, 26, 0.6);
+        font-size: 13px;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+        transition: background-color 150ms var(--ease);
+      }
+
+      .pill:hover {
+        background: var(--raised);
+      }
+
+      .pill strong {
+        font-weight: 600;
+      }
+
+      .pill-sep {
+        color: rgba(255, 255, 255, 0.3);
+      }
+
+      .pill-arrow {
+        width: 20px;
+        height: 20px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--raised-2);
+      }
+
       h1 {
         margin: 0 0 20px;
-        font-size: clamp(36px, 4.6vw, 56px);
+        font-size: clamp(40px, 5vw, 60px);
         font-weight: 500;
-        line-height: 1.06;
-        letter-spacing: -0.03em;
-        max-width: 20ch;
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+        max-width: 14ch;
+        text-wrap: balance;
+      }
+
+      h1 :global(.h1-face) {
+        width: 0.92em;
+        height: 0.92em;
+        margin: 0 0.02em;
+        vertical-align: -0.12em;
       }
 
       .lede {
         margin: 0 0 32px;
         max-width: 34rem;
-        font-size: 19px;
-        line-height: 1.55;
-        color: var(--fg-2);
+        font-size: 18px;
+        line-height: 1.625;
+        color: var(--fg-3);
       }
 
       .actions {
@@ -276,10 +281,11 @@ const modes = [
         margin: 0 auto;
         padding: 10px;
         border-radius: 48px;
-        background: linear-gradient(155deg, #272b34, #0e1016);
+        background: linear-gradient(155deg, #2a2a2a, #0f0f0f);
         box-shadow:
-          inset 0 1px 0 rgba(238, 240, 245, 0.1),
-          0 24px 60px rgba(0, 0, 0, 0.55);
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          0 0 0 1px rgba(255, 255, 255, 0.06),
+          0 24px 60px rgba(0, 0, 0, 0.6);
         transform-style: preserve-3d;
       }
 
@@ -289,8 +295,9 @@ const modes = [
         /* Screen proportion that puts the whole device at a current iPhone's 2.17 */
         aspect-ratio: 1 / 2.24;
         border-radius: 38px;
-        background: var(--surface);
+        background: var(--deep);
         overflow: hidden;
+        --face-eye: var(--deep);
       }
 
       .island {
@@ -341,18 +348,20 @@ const modes = [
       }
 
       .avatar {
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         display: grid;
         place-items: center;
-        border-radius: 50%;
-        background: var(--raised);
-        color: var(--fg-2);
-        font-size: 13px;
+        color: var(--fg);
+      }
+
+      .avatar :global(.bot-face) {
+        width: 100%;
+        height: 100%;
       }
 
       .appbar-name {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--fg-2);
       }
 
@@ -386,7 +395,7 @@ const modes = [
 
       .bubble.out {
         align-self: flex-end;
-        background: var(--accent);
+        background: var(--imessage);
         color: #ffffff;
         border-bottom-right-radius: 5px;
         transform-origin: 100% 100%;
@@ -394,7 +403,7 @@ const modes = [
 
       .bubble.in {
         align-self: flex-start;
-        background: var(--raised);
+        background: #262628;
         color: var(--fg);
         border-bottom-left-radius: 5px;
         transform-origin: 0% 100%;
@@ -456,7 +465,7 @@ const modes = [
         width: 2px;
         height: 16px;
         margin-left: 1px;
-        background: var(--accent);
+        background: var(--imessage);
         opacity: 0;
       }
 
@@ -479,7 +488,7 @@ const modes = [
       }
 
       [data-compose-state="typing"] .send {
-        background: var(--accent);
+        background: var(--imessage);
         color: #ffffff;
       }
 
@@ -488,10 +497,10 @@ const modes = [
       .log {
         max-width: 34rem;
         margin-top: 40px;
-        padding: 16px;
-        background: var(--deep);
+        padding: 16px 18px;
+        background: var(--surface);
         border: 1px solid var(--line);
-        border-radius: 14px;
+        border-radius: 16px;
       }
 
       .log-head {
@@ -530,10 +539,10 @@ const modes = [
       }
 
       .replay {
-        padding: 3px 7px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: transparent;
+        padding: 3px 9px;
+        border: 0;
+        border-radius: 9999px;
+        background: var(--raised);
         font-family: var(--mono);
         font-size: 11px;
         color: var(--fg-3);
@@ -546,7 +555,7 @@ const modes = [
 
       .replay:hover {
         color: var(--fg);
-        border-color: var(--line-strong);
+        background: var(--raised-2);
       }
 
       .replay:active {
@@ -617,25 +626,27 @@ const modes = [
 
       h2 {
         margin: 0 0 12px;
-        font-size: 28px;
+        font-size: 36px;
         font-weight: 500;
-        line-height: 1.15;
-        letter-spacing: -0.02em;
+        line-height: 1.1;
+        letter-spacing: -0.01em;
       }
 
       .run p {
         margin: 0;
         max-width: 34rem;
-        color: var(--fg-2);
+        font-size: 16px;
+        line-height: 1.625;
+        color: var(--fg-3);
       }
 
       pre {
         margin: 24px 0 0;
-        padding: 20px;
+        padding: 20px 24px;
         overflow-x: auto;
         background: var(--surface);
         border: 1px solid var(--line);
-        border-radius: 12px;
+        border-radius: 16px;
         font-family: var(--mono);
         font-size: 13px;
         line-height: 1.75;
@@ -649,19 +660,15 @@ const modes = [
       .modes {
         margin: 0;
         display: grid;
-        gap: 16px;
+        gap: 8px;
       }
 
       .mode {
         display: grid;
         gap: 4px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .mode:last-child {
-        padding-bottom: 0;
-        border-bottom: 0;
+        padding: 18px 22px;
+        border-radius: 20px;
+        background: var(--raised);
       }
 
       .mode-name {
@@ -677,85 +684,7 @@ const modes = [
 
       .mode-does {
         font-size: 14px;
-        color: var(--fg-2);
-      }
-
-      /* Footer */
-
-      footer {
-        border-top: 1px solid var(--line);
-      }
-
-      .footer-row {
-        height: 72px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        font-size: 14px;
         color: var(--fg-3);
-      }
-
-      .footer-row p {
-        margin: 0;
-        font-family: var(--mono);
-        font-size: 13px;
-      }
-
-      .footer-links {
-        display: flex;
-        gap: 20px;
-      }
-
-      .footer-links a {
-        transition: color 150ms var(--ease);
-      }
-
-      .footer-links a:hover {
-        color: var(--fg);
-      }
-
-      /* Entrance */
-
-      @media (prefers-reduced-motion: no-preference) {
-        [data-log-state="streaming"] .caret,
-        [data-compose-state="typing"] .compose-caret {
-          animation: blink 1s steps(1, end) infinite;
-        }
-
-        .enter {
-          animation: rise 400ms var(--ease) both;
-        }
-
-        .enter:nth-child(2) {
-          animation-delay: 60ms;
-        }
-
-        .enter:nth-child(3) {
-          animation-delay: 120ms;
-        }
-
-        .window {
-          animation: rise 400ms var(--ease) 180ms both;
-        }
-      }
-
-      @keyframes rise {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-      }
-
-      @keyframes blink {
-        0%,
-        50% {
-          opacity: 1;
-        }
-        50.01%,
-        100% {
-          opacity: 0;
-        }
       }
 
       /* Narrow desktop: shrink the phone so the log keeps its room */
@@ -766,21 +695,25 @@ const modes = [
         }
       }
 
-      /* Small screens */
-
       @media (max-width: 900px) {
-        .shell {
-          padding: 0 24px;
-        }
-
         .hero,
         .run {
           grid-template-columns: minmax(0, 1fr);
           gap: 48px;
         }
 
+        .hero {
+          min-height: 0;
+          padding: 24px 0 64px;
+        }
+
+        /* Phone leads on mobile; copy follows. */
+        .stage {
+          order: -1;
+        }
+
         .phone {
-          --phone-w: min(300px, 100%);
+          --phone-w: min(280px, 72vw);
           margin: 0 auto;
         }
 
@@ -788,29 +721,21 @@ const modes = [
           margin-top: 32px;
         }
 
-        .hero {
-          min-height: 0;
-          padding: 48px 0 64px;
-        }
-
         h1 {
-          max-width: 16ch;
+          max-width: 14ch;
         }
 
         .lede {
           font-size: 17px;
         }
 
-        .nav-links a:not(.btn) {
-          display: none;
-        }
-
-        .footer-row {
-          height: auto;
-          padding: 24px 0;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 16px;
+        .run pre {
+          padding: 16px;
+          font-size: 12px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
         }
       }
 
@@ -819,224 +744,15 @@ const modes = [
           width: 100%;
         }
 
-        .sound span {
+        .pill-sep,
+        .pill-sep + span {
           display: none;
         }
 
-        .sound {
-          padding: 0 10px;
+        .run pre {
+          padding: 14px;
+          font-size: 11px;
+          line-height: 1.7;
         }
       }
-    </style>
-  </head>
-
-  <body>
-    <div class="shell">
-      <header class="nav">
-        <a class="brand" href="/">
-          <svg class="mark" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M8 1.5c3.87 0 7 2.4 7 5.4s-3.13 5.4-7 5.4a9.3 9.3 0 0 1-1.86-.19c-.9.73-2.1 1.3-3.4 1.47-.27.04-.42-.3-.24-.5.5-.56.9-1.2 1.07-1.9C1.97 10.2 1 8.74 1 6.9 1 3.9 4.13 1.5 8 1.5Z"
-            ></path>
-          </svg>
-          <span>grok-imessage</span>
-        </a>
-        <nav class="nav-links">
-          <a href={architecture} data-cuelume-tap data-cuelume-emphasis="subtle">Architecture</a>
-          <a href="#run" data-cuelume-navigate data-cuelume-emphasis="subtle">Run it</a>
-          <button
-            class="btn btn-secondary btn-small sound"
-            type="button"
-            aria-pressed="false"
-            aria-label="Turn interface sound on"
-            data-sound-toggle
-          >
-            <svg class="sound-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-              <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 5 6 9H3v6h3l5 4z"></path>
-                <path class="sound-wave" d="M15.5 9.5a3.5 3.5 0 0 1 0 5"></path>
-                <path class="sound-wave" d="M18.5 7a7 7 0 0 1 0 10"></path>
-                <path class="sound-mute" d="m17 10 4 4"></path>
-                <path class="sound-mute" d="m21 10-4 4"></path>
-              </g>
-            </svg>
-            <span>Sound</span>
-          </button>
-          <a class="btn btn-secondary btn-small" href={repo} data-cuelume-tap>GitHub</a>
-        </nav>
-      </header>
-
-      <main>
-        <section class="hero" data-thread-window data-log-state="idle" data-compose-state="idle">
-          <div class="hero-text">
-            <h1 class="enter">Text your Grok Bot from iMessage</h1>
-            <p class="lede enter">
-              Spectrum takes the message off your line, the bridge wakes your Bot's routine, and the
-              answer arrives in the same thread. Memory, skills and the cloud computer stay on the
-              Bot.
-            </p>
-            <div class="actions enter">
-              <a class="btn btn-primary" href={repo} data-cuelume-tap>
-                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                  <path
-                    fill="currentColor"
-                    d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.19c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
-                  ></path>
-                </svg>
-                View on GitHub
-              </a>
-              <a
-                class="btn btn-secondary"
-                href={architecture}
-                data-cuelume-tap
-                data-cuelume-emphasis="subtle">Read the architecture</a
-              >
-            </div>
-            <p class="meta enter">MIT · Bun and TypeScript · scaffold on main</p>
-            <div class="log">
-              <p class="log-head">
-                <span>bridge log</span>
-                <span class="log-meta">
-                  <span class="log-status">
-                    <span class="log-dot" aria-hidden="true"></span>
-                    <span data-log-status>idle</span>
-                  </span>
-                  <button class="replay" type="button" data-replay data-cuelume-tap data-cuelume-emphasis="subtle">
-                    Replay
-                  </button>
-                </span>
-              </p>
-              <ol class="trace">
-                {
-                  trace.map((row) => (
-                    <li data-log-row>
-                      <time>{row.at}</time>
-                      <span class="actor">{row.actor}</span>
-                      <span class="event">{row.event}</span>
-                      <span class="delta">{row.delta}</span>
-                    </li>
-                  ))
-                }
-              </ol>
-              <span class="caret" aria-hidden="true"></span>
-            </div>
-          </div>
-
-          <div class="stage">
-
-            <figure class="phone" data-phone>
-              <span class="island" aria-hidden="true"></span>
-
-              <div class="screen">
-                <div class="statusbar" aria-hidden="true">
-                  <span data-clock>{clock}</span>
-                  <span class="indicators">
-                    <svg width="15" height="10" viewBox="0 0 15 10" fill="currentColor">
-                      <rect x="0" y="6" width="3" height="4" rx="1"></rect>
-                      <rect x="4" y="4" width="3" height="6" rx="1"></rect>
-                      <rect x="8" y="2" width="3" height="8" rx="1"></rect>
-                      <rect x="12" y="0" width="3" height="10" rx="1"></rect>
-                    </svg>
-                    <svg width="13" height="10" viewBox="0 0 13 10" fill="currentColor">
-                      <path d="M6.5 8.6 4.9 6.9a2.4 2.4 0 0 1 3.2 0z"></path>
-                      <path d="M6.5 3.1c1.5 0 2.9.6 3.9 1.6l-1 1.1a4.1 4.1 0 0 0-5.8 0l-1-1.1a5.5 5.5 0 0 1 3.9-1.6z"></path>
-                      <path d="M6.5 0c2.3 0 4.4 1 5.9 2.5l-1 1.1a6.9 6.9 0 0 0-9.8 0L.6 2.5A8.2 8.2 0 0 1 6.5 0z"></path>
-                    </svg>
-                    <svg width="22" height="11" viewBox="0 0 22 11" fill="currentColor">
-                      <rect x=".5" y=".5" width="18" height="10" rx="3" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
-                      <rect x="2" y="2" width="12" height="7" rx="1.8"></rect>
-                      <path d="M20 4v3a1.6 1.6 0 0 0 0-3z" fill-opacity=".45"></path>
-                    </svg>
-                  </span>
-                </div>
-
-                <figcaption class="appbar">
-                  <svg class="appbar-back" width="8" height="14" viewBox="0 0 8 14" aria-hidden="true">
-                    <path d="M7 1 1 7l6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                  </svg>
-                  <span class="avatar" aria-hidden="true">G</span>
-                  <span class="appbar-name">Grok Bot</span>
-                </figcaption>
-
-                <div class="thread" data-thread>
-                  <p class="day">iMessage · Today <span data-day>{clock}</span></p>
-                  <div class="bubble out" data-step="out">{opening.question}</div>
-                  <p class="receipt" data-step="receipt">Delivered</p>
-                  <div class="bubble in typing" data-step="typing" aria-hidden="true" hidden>
-                    <span class="dot" data-dot></span>
-                    <span class="dot" data-dot></span>
-                    <span class="dot" data-dot></span>
-                  </div>
-                  <div class="bubble in" data-step="in">{opening.reply}</div>
-                </div>
-
-                <div class="compose" aria-hidden="true">
-                  <span class="field">
-                    <span class="compose-text" data-compose></span><span class="compose-caret"></span>
-                  </span>
-                  <span class="send">
-                    <svg width="14" height="14" viewBox="0 0 24 24">
-                      <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            </figure>
-          </div>
-
-        </section>
-
-        <section class="run" id="run">
-          <div>
-            <h2>Run the bridge</h2>
-            <p>
-              Clone the repo, drop your Spectrum credentials into <code>.env</code>, and start the
-              two processes. How much the bridge does depends on what you fill in.
-            </p>
-            <pre><code><span class="cmd">git clone {repo}</span>
-<span class="cmd">cd grok-imessage</span>
-<span class="cmd">bun install</span>
-<span class="cmd">cp .env.example .env</span>
-
-<span class="cmd">bun run dev:bridge</span>   # http://localhost:3000/health
-<span class="cmd">bun run dev:web</span></code></pre>
-          </div>
-
-          <div class="modes">
-            {
-              modes.map((mode) => (
-                <div class="mode">
-                  <span class="mode-name">{mode.name}</span>
-                  <span class="mode-env">{mode.env}</span>
-                  <span class="mode-does">{mode.does}</span>
-                </div>
-              ))
-            }
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <footer>
-      <div class="shell footer-row">
-        <p>grok-imessage · MIT</p>
-        <div class="footer-links">
-          <a href="https://photon.codes/docs/spectrum-ts" data-cuelume-tap>Spectrum docs</a>
-          <a href="https://cursor.com/docs/grok-bot" data-cuelume-tap>Grok Bot docs</a>
-          <a href={repo} data-cuelume-tap>GitHub</a>
-        </div>
-      </div>
-    </footer>
-
-    <script>
-      import { initSound } from "../scripts/sound";
-      import { initThread } from "../scripts/thread";
-
-      const thread = initThread();
-
-      // Switching sound on replays the thread, so the cues are actually heard.
-      initSound(() => thread?.replay());
-    </script>
-  </body>
-</html>
+</style>

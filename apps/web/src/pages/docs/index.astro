@@ -1,0 +1,56 @@
+---
+import Docs from "../../layouts/Docs.astro";
+import Snippet from "../../components/Snippet.astro";
+
+const toc = [
+  { id: "what-this-is", label: "What this is" },
+  { id: "the-loop", label: "The loop" },
+  { id: "run-modes", label: "Run modes" },
+];
+
+const flow = `
+iPhone --> Spectrum --> bridge --webhook--> Grok Bot
+                                               |
+iPhone <-- Spectrum <-- bridge <--send_reply---+
+`;
+---
+
+<Docs
+  title="How it works"
+  eyebrow="Overview"
+  description="A small Bun service that carries iMessages to the Grok Bot you already use, and brings its answer back to the same thread."
+  toc={toc}
+>
+  <h2 id="what-this-is">What this is</h2>
+
+  <p>
+    grok-imessage is glue, not a brain. Your Bot keeps its memory, skills and cloud computer; this
+    gives it an iMessage front door. <a href="https://photon.codes/docs/spectrum-ts">Spectrum</a> handles
+    the iMessage line.
+  </p>
+
+  <h2 id="the-loop">The loop</h2>
+
+  <Snippet lang="flow" code={flow} />
+
+  <p>
+    Grok Bot has no chat API, so the bridge wakes a routine over its webhook and hands it a one-shot
+    reply token. When the Bot is done it calls <code>send_reply</code> over MCP, and the bridge sends the
+    answer into the chat the token was bound to. Tokens work once and expire after 45 minutes.
+  </p>
+
+  <h2 id="run-modes">Run modes</h2>
+
+  <p>The bridge does as much as you configure:</p>
+
+  <table>
+    <thead>
+      <tr><th>Mode</th><th>Needs</th><th>Does</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>HTTP only</td><td>nothing</td><td>Serves <code>/health</code>, <code>/reply</code>, <code>/mcp</code></td></tr>
+      <tr><td>Echo</td><td>Spectrum credentials</td><td>Texts come back as <code>echo: …</code></td></tr>
+      <tr><td>Wake</td><td>+ webhook and public URL</td><td>Wakes the Bot and delivers its reply</td></tr>
+    </tbody>
+  </table>
+</Docs>
