@@ -1,0 +1,34 @@
+---
+type Props = {
+  class?: string;
+  /** A still face never animates, even when the face script is running. */
+  still?: boolean;
+};
+
+const { class: className, still = false } = Astro.props;
+---
+
+<svg
+  class:list={["bot-face", className]}
+  viewBox="17 17 58 58"
+  aria-hidden="true"
+  data-bot-face={still ? undefined : ""}
+>
+  <circle class="bot-face-head" cx="46" cy="46" r="27.6"></circle>
+  <rect
+    class="bot-face-eye"
+    x="-3.45"
+    y="-7.75"
+    width="6.9"
+    height="15.5"
+    rx="3.45"
+    transform="translate(37.4 46)"></rect>
+  <rect
+    class="bot-face-eye"
+    x="-3.45"
+    y="-7.75"
+    width="6.9"
+    height="15.5"
+    rx="3.45"
+    transform="translate(54.6 46)"></rect>
+</svg>

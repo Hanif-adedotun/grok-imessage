@@ -1,0 +1,113 @@
+---
+import Site from "./Site.astro";
+import "../styles/docs.css";
+
+export type TocEntry = { id: string; label: string };
+
+type Props = {
+  title: string;
+  description: string;
+  eyebrow: string;
+  toc?: TocEntry[];
+};
+
+const { title, description, eyebrow, toc = [] } = Astro.props;
+
+const pages = [
+  { href: "/docs/", label: "Overview", title: "How it works" },
+  { href: "/docs/setup/", label: "Setup", title: "Setup" },
+  { href: "/docs/routine/", label: "Grok Bot routine", title: "The Grok Bot routine" },
+  { href: "/docs/spectrum/", label: "Spectrum", title: "Spectrum" },
+];
+
+const path = Astro.url.pathname.replace(/\/?$/, "/");
+const index = pages.findIndex((p) => p.href === path);
+const prev = index > 0 ? pages[index - 1] : null;
+const next = index >= 0 && index < pages.length - 1 ? pages[index + 1] : null;
+---
+
+<Site title={`${title} — grok-imessage docs`} description={description}>
+  <div class="docs">
+    <aside class="docs-nav">
+      <div class="docs-group">
+        <p class="docs-group-label">Documentation</p>
+        <ul>
+          {
+            pages.map((page) => (
+              <li>
+                <a
+                  href={page.href}
+                  aria-current={page.href === path ? "page" : undefined}
+                  data-cuelume-navigate
+                  data-cuelume-emphasis="subtle"
+                >
+                  {page.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div class="docs-group">
+        <p class="docs-group-label">Reference</p>
+        <ul>
+          <li><a href="https://photon.codes/docs/spectrum-ts" data-cuelume-tap>Spectrum SDK</a></li>
+          <li><a href="https://cursor.com/docs/grok-bot" data-cuelume-tap>Grok Bot</a></li>
+          <li>
+            <a
+              href="https://github.com/Hanif-adedotun/grok-imessage/blob/main/docs/ARCHITECTURE.md"
+              data-cuelume-tap>Architecture</a
+            >
+          </li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="docs-main">
+      <header class="docs-header">
+        <p class="docs-eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </header>
+
+      <div class="prose">
+        <slot />
+      </div>
+
+      {
+        (prev || next) && (
+          <nav class="docs-foot">
+            {prev && (
+              <a href={prev.href} data-cuelume-navigate data-cuelume-emphasis="subtle">
+                <span>Previous</span>
+                <strong>{prev.title}</strong>
+              </a>
+            )}
+            {next && (
+              <a class="next" href={next.href} data-cuelume-navigate data-cuelume-emphasis="subtle">
+                <span>Next</span>
+                <strong>{next.title}</strong>
+              </a>
+            )}
+          </nav>
+        )
+      }
+    </main>
+
+    {
+      toc.length > 0 && (
+        <aside class="toc">
+          <p>On this page</p>
+          <ul>
+            {toc.map((entry) => (
+              <li>
+                <a href={`#${entry.id}`}>{entry.label}</a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )
+    }
+  </div>
+</Site>

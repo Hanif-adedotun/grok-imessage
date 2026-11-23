@@ -1,0 +1,146 @@
+---
+import { ClientRouter, fade } from "astro:transitions";
+import BotFace from "../components/BotFace.astro";
+import "../styles/base.css";
+
+type Props = {
+  title: string;
+  description: string;
+};
+
+const { title, description } = Astro.props;
+
+const repo = "https://github.com/Hanif-adedotun/grok-imessage";
+const path = Astro.url.pathname;
+const inDocs = path.startsWith("/docs");
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <ClientRouter />
+    <script is:inline>
+      // The hero animates itself in, so hide it until the script is ready — and
+      // put it back if that script never arrives.
+      document.documentElement.dataset.js = "on";
+      setTimeout(function () {
+        if (!document.documentElement.dataset.ready) {
+          delete document.documentElement.dataset.js;
+        }
+      }, 2000);
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+  </head>
+
+  <body>
+    <div class="shell">
+      <header class="nav" transition:persist transition:name="nav">
+        <a class="brand" href="/">
+          <BotFace class="mark" still />
+          <span>grok-imessage</span>
+        </a>
+
+        <nav class="nav-links">
+          <a
+            href="/docs/"
+            aria-current={inDocs ? "page" : undefined}
+            data-cuelume-navigate
+            data-cuelume-emphasis="subtle">Docs</a
+          >
+          <button
+            class="btn btn-secondary btn-small sound"
+            type="button"
+            aria-pressed="false"
+            aria-label="Turn interface sound on"
+            data-sound-toggle
+          >
+            <svg class="sound-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <g
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M11 5 6 9H3v6h3l5 4z"></path>
+                <path class="sound-wave" d="M15.5 9.5a3.5 3.5 0 0 1 0 5"></path>
+                <path class="sound-wave" d="M18.5 7a7 7 0 0 1 0 10"></path>
+                <path class="sound-mute" d="m17 10 4 4"></path>
+                <path class="sound-mute" d="m21 10-4 4"></path>
+              </g>
+            </svg>
+            <span>Sound</span>
+          </button>
+          <a class="btn btn-secondary btn-small" href={repo} data-cuelume-tap>GitHub</a>
+        </nav>
+      </header>
+
+      <main transition:animate={fade({ duration: "260ms" })}>
+        <slot />
+      </main>
+    </div>
+
+    <footer>
+      <div class="shell footer-row">
+        <p><BotFace still /> grok-imessage · an open-source extension for Grok Bot · MIT</p>
+        <div class="footer-links">
+          <a href="/docs/" data-cuelume-tap>Docs</a>
+          <a href="https://photon.codes/docs/spectrum-ts" data-cuelume-tap>Spectrum</a>
+          <a href="https://x.ai/bot" data-cuelume-tap>Grok Bot</a>
+          <a href={repo} data-cuelume-tap>GitHub</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      import { initFaces } from "../scripts/face";
+      import { initSound } from "../scripts/sound";
+
+      let thread: { replay: () => void; destroy: () => void } | null = null;
+      let faces: { destroy: () => void } | null = null;
+
+      // Fires on first load and again after every client-side navigation.
+      document.addEventListener("astro:page-load", async () => {
+        faces = initFaces();
+        // `motion` is only worth downloading on the page that actually animates.
+        const stage = document.querySelector("[data-thread-window]");
+        thread = stage ? (await import("../scripts/thread")).initThread() : null;
+        initSound(() => thread?.replay());
+      });
+
+      // Tear down before the DOM is swapped so timers and observers do not stack.
+      document.addEventListener("astro:before-swap", () => {
+        thread?.destroy();
+        thread = null;
+        faces?.destroy();
+        faces = null;
+      });
+
+      // Delegated, so it survives swaps without rebinding.
+      document.addEventListener("click", (event) => {
+        const button = (event.target as HTMLElement)?.closest?.("[data-copy]");
+        if (!(button instanceof HTMLButtonElement)) return;
+        const code = button.closest(".snippet")?.querySelector("code")?.textContent ?? "";
+        void navigator.clipboard.writeText(code).then(() => {
+          button.textContent = "Copied";
+          button.dataset.copied = "true";
+          window.setTimeout(() => {
+            button.textContent = "Copy";
+            delete button.dataset.copied;
+          }, 1400);
+        });
+      });
+    </script>
+  </body>
+</html>

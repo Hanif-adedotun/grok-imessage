@@ -19,7 +19,7 @@ Grok Bot keeps the memory, skills, and cloud computer. This project is the glue:
 | Monorepo (Bun workspaces) | Ready |
 | Bridge HTTP (`/health`, `/reply`) | Stub |
 | Spectrum message loop | Stub (echo / wake paths sketched) |
-| Landing (`apps/web`) | Shell page |
+| Landing (`apps/web`) | Built — animated phone demo |
 | Tests | Not started (Epic 0) |
 
 ---

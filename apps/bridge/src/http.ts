@@ -1,18 +1,43 @@
 import { Hono } from "hono";
-import { handleReply } from "./bridge/reply.ts";
+import { createMcpApp } from "./bridge/mcp.ts";
+import { createReplyHandler, type ReplyHandlerDeps } from "./bridge/reply.ts";
+import type { TokenStore } from "./bridge/tokens.ts";
 
-export function createHttpApp() {
+export type HealthSnapshot = {
+  spectrum: boolean;
+  wake: boolean;
+};
+
+export type HttpAppOptions = {
+  mcpAuthToken?: string | null;
+};
+
+export function createHttpApp(
+  storeOrDeps: TokenStore | ReplyHandlerDeps,
+  getHealth: () => HealthSnapshot = () => ({ spectrum: false, wake: false }),
+  options: HttpAppOptions = {},
+) {
   const app = new Hono();
 
-  app.get("/health", (c) =>
-    c.json({
+  const deps: ReplyHandlerDeps =
+    typeof storeOrDeps === "object" &&
+    storeOrDeps !== null &&
+    "store" in storeOrDeps
+      ? storeOrDeps
+      : { store: storeOrDeps };
+
+  app.get("/health", (c) => {
+    const health = getHealth();
+    return c.json({
       ok: true,
       service: "grok-imessage-bridge",
-      phase: "foundation",
-    }),
-  );
+      spectrum: health.spectrum,
+      wake: health.wake,
+    });
+  });
 
-  app.post("/reply", handleReply);
+  app.post("/reply", createReplyHandler(deps));
+  app.route("/", createMcpApp({ ...deps, authToken: options.mcpAuthToken }));
 
   return app;
 }

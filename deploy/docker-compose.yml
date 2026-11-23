@@ -1,0 +1,20 @@
+# Lives at /home/hanif/open-source/grok-imessage on the VPS, next to .env.
+# Host nginx fronts both: / -> web, /api/ -> bridge (prefix stripped).
+name: grok-imessage
+
+services:
+  web:
+    image: ghcr.io/hanif-adedotun/grok-imessage-web:${TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8081}:80"
+
+  bridge:
+    image: ghcr.io/hanif-adedotun/grok-imessage-bridge:${TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:${BRIDGE_PORT:-3001}:3000"
+    # Reply tokens are in memory: keep a single replica.

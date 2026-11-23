@@ -1,111 +1,128 @@
 import { Spectrum } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
-import { bindToken, createReplyToken } from "./bridge/tokens.ts";
+import { RecentIdSet } from "./bridge/dedup.ts";
+import {
+  loadBridgeEnv,
+  replyUrl,
+  spectrumConfigured,
+  validateBridgeEnv,
+  wakeConfigured,
+} from "./bridge/env.ts";
+import { handleInbound } from "./bridge/inbound.ts";
+import { InFlightWatch } from "./bridge/inflight.ts";
+import { consoleLog } from "./bridge/log.ts";
+import { RateLimiter } from "./bridge/rate-limit.ts";
+import { TokenStore } from "./bridge/tokens.ts";
 import { wakeGrokBot } from "./bridge/wake.ts";
-import { createHttpApp } from "./http.ts";
+import { createHttpApp, type HealthSnapshot } from "./http.ts";
 
-function allowedSenders(): Set<string> | null {
-  const raw = process.env.ALLOWED_SENDERS?.trim();
-  if (!raw) return null;
-  return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
+/** Outbound/agent echoes — skip so we do not re-wake on our own sends. */
+function isAgentEcho(message: { direction?: string }): boolean {
+  return message.direction === "outbound";
 }
 
-function publicReplyUrl(): string {
-  const base = process.env.BRIDGE_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (!base) {
-    throw new Error("BRIDGE_PUBLIC_BASE_URL is required to build reply_url for Grok Bot");
-  }
-  return `${base}/reply`;
+const env = loadBridgeEnv(process.env);
+const issues = validateBridgeEnv(env);
+for (const issue of issues) {
+  console.error(`[env] ${issue.field}: ${issue.message}`);
+}
+if (issues.length > 0) {
+  console.error("[env] fix the issues above, then restart");
+  process.exit(1);
 }
 
-const port = Number(process.env.PORT ?? 3000);
-const http = createHttpApp();
+const store = new TokenStore({
+  pepper: env.pepper,
+  ttlMs: env.ttlMs,
+  now: () => Date.now(),
+});
 
-const server = Bun.serve({
-  port,
+const rateLimiter = new RateLimiter({
+  capacity: 20,
+  windowMs: 60_000,
+  now: () => Date.now(),
+});
+
+const dedup = new RecentIdSet({
+  ttlMs: 120_000,
+  now: () => Date.now(),
+});
+
+const inflight = new InFlightWatch({
+  store,
+  delayMs: 120_000,
+});
+
+const health: HealthSnapshot = {
+  spectrum: false,
+  wake: wakeConfigured(env),
+};
+
+const http = createHttpApp(
+  { store, inflight, log: consoleLog },
+  () => health,
+  { mcpAuthToken: env.mcpAuthToken },
+);
+
+Bun.serve({
+  port: env.port,
   fetch: http.fetch,
 });
 
-console.log(`[http] listening on :${server.port}`);
+console.log(`[http] listening on :${env.port}`);
+console.log(
+  `[health] spectrum=${health.spectrum} wake=${health.wake} (GET /health)`,
+);
 
-const projectId = process.env.PROJECT_ID;
-const projectSecret = process.env.PROJECT_SECRET;
-
-if (!projectId || !projectSecret) {
+if (!spectrumConfigured(env)) {
   console.warn(
-    "[spectrum] PROJECT_ID / PROJECT_SECRET missing — HTTP /health and /reply are up; message loop not started. See .env.example",
+    "[spectrum] PROJECT_ID / PROJECT_SECRET missing — HTTP /health, /reply, /mcp are up; message loop not started. See .env.example",
   );
 } else {
-  const allow = allowedSenders();
-
   const app = await Spectrum({
-    projectId,
-    projectSecret,
-    providers: [
-      imessage.config(),
-      // Local dry-runs without burning an iMessage line
-      terminal.config(),
-    ],
+    projectId: env.projectId!,
+    projectSecret: env.projectSecret!,
+    providers: [imessage.config(), terminal.config()],
   });
 
+  health.spectrum = true;
   console.log("[spectrum] connected — waiting for messages");
+
+  const inboundDeps = {
+    store,
+    wake: wakeGrokBot,
+    fetch,
+    wakeUrl: env.wakeUrl,
+    wakeKey: env.wakeKey,
+    replyUrl: wakeConfigured(env) ? replyUrl(env) : "http://127.0.0.1/unused",
+    allowlist: env.allowlist,
+    nowIso: () => new Date().toISOString(),
+    uuid: () => crypto.randomUUID(),
+    rateLimiter,
+    dedup,
+    inflight,
+    log: consoleLog,
+    wakeTimeoutMs: 15_000,
+  };
 
   void (async () => {
     for await (const [space, message] of app.messages) {
       try {
-        if (message.content.type !== "text") continue;
-
-        const from = message.sender?.id ?? "unknown";
-        if (allow && !allow.has(from)) {
-          console.log(`[inbound] ignored sender ${from}`);
-          continue;
-        }
-
-        const text = message.content.text.trim();
-        if (!text) continue;
-
-        // Phase 1 default: echo. Flip to wake once GROK_BOT_* is set and you want the Bot loop.
-        const useWake = Boolean(process.env.GROK_BOT_WEBHOOK_URL && process.env.GROK_BOT_WEBHOOK_KEY);
-
-        if (!useWake) {
-          await space.responding(async () => {
-            await message.reply(`echo: ${text}`);
-          });
-          continue;
-        }
-
-        const replyToken = createReplyToken();
-        const correlationId = crypto.randomUUID();
-        await bindToken(replyToken, {
-          space,
-          message,
-          from,
-          correlationId,
-        });
-
-        const wake = await wakeGrokBot({
-          text,
-          from,
-          platform: String(message.platform ?? "imessage"),
-          reply_url: publicReplyUrl(),
-          reply_token: replyToken,
-          correlation_id: correlationId,
-          sent_at: new Date().toISOString(),
-        });
-
-        if (!wake.ok) {
-          console.error("[wake] failed", wake.status, wake.body);
-          await space.send("Couldn't reach your Grok Bot just now. Try again in a bit.");
-          continue;
-        }
-
-        // Instant ack while the Bot works (reply comes later via POST /reply)
-        try {
-          await message.react("like");
-        } catch {
-          // tapbacks are best-effort
-        }
+        const contentType = message.content.type;
+        await handleInbound(
+          {
+            contentType,
+            text: contentType === "text" ? message.content.text : "",
+            from: message.sender?.id ?? "unknown",
+            platform: String(message.platform ?? "imessage"),
+            isAgent: isAgentEcho(message),
+            messageId: message.id,
+            space,
+            message,
+          },
+          inboundDeps,
+        );
       } catch (err) {
         console.error("[inbound] error", err);
       }

@@ -1,47 +1,58 @@
 import type { Context } from "hono";
-import { consumeToken } from "./tokens.ts";
+import { deliverReply, type DeliverDeps } from "./deliver.ts";
 
 type ReplyBody = {
   text?: string;
   correlation_id?: string;
 };
 
-/**
- * POST /reply — Grok Bot (or MCP) delivers the finished answer.
- * Bearer reply_token required. Destination Space comes from the token binding.
- */
-export async function handleReply(c: Context) {
-  const auth = c.req.header("Authorization");
-  if (!auth?.startsWith("Bearer ")) {
-    return c.json({ ok: false, error: "missing_bearer" }, 401);
-  }
+export type ReplyHandlerDeps = DeliverDeps;
 
-  const token = auth.slice("Bearer ".length).trim();
-  if (!token) {
-    return c.json({ ok: false, error: "missing_bearer" }, 401);
-  }
+export function createReplyHandler(deps: ReplyHandlerDeps | DeliverDeps["store"]) {
+  const deliverDeps: DeliverDeps =
+    typeof deps === "object" && deps !== null && "store" in deps
+      ? deps
+      : { store: deps };
 
-  let body: ReplyBody;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ ok: false, error: "invalid_json" }, 400);
-  }
+  return async (c: Context) => {
+    const auth = c.req.header("Authorization");
+    if (!auth?.startsWith("Bearer ")) {
+      return c.json({ ok: false, error: "missing_bearer" }, 401);
+    }
 
-  const text = body.text?.trim();
-  if (!text) {
-    return c.json({ ok: false, error: "missing_text" }, 400);
-  }
+    const token = auth.slice("Bearer ".length).trim();
+    if (!token) {
+      return c.json({ ok: false, error: "missing_bearer" }, 401);
+    }
 
-  const result = await consumeToken(token);
-  if (!result.ok) {
-    const status = result.reason === "consumed" ? 410 : 403;
-    return c.json({ ok: false, error: result.reason }, status);
-  }
+    let body: ReplyBody;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ ok: false, error: "invalid_json" }, 400);
+    }
 
-  await result.binding.space.send(text);
-  return c.json({
-    ok: true,
-    correlation_id: body.correlation_id ?? result.binding.correlationId,
-  });
+    const result = await deliverReply(deliverDeps, {
+      token,
+      text: body.text ?? "",
+      correlationId: body.correlation_id,
+    });
+
+    if (!result.ok) {
+      const status =
+        result.error === "consumed"
+          ? 410
+          : result.error === "send_failed"
+            ? 502
+            : result.error === "missing_text"
+              ? 400
+              : 403;
+      return c.json({ ok: false, error: result.error }, status);
+    }
+
+    return c.json({
+      ok: true,
+      correlation_id: result.correlation_id,
+    });
+  };
 }

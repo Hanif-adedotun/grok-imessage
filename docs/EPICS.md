@@ -1,7 +1,7 @@
 # Bridge epics (`apps/bridge`)
 
-Scope: core loop only — Spectrum inbound → wake Grok Bot → `POST /reply` → Spectrum outbound.  
-Landing (`apps/web`) and MCP are out of scope until the bridge is proven.
+Scope: core loop — Spectrum inbound → wake Grok Bot → MCP `send_reply` / `POST /reply` → Spectrum outbound.  
+Landing (`apps/web`) polish is separate.
 
 ## Engineering bar
 
@@ -48,6 +48,8 @@ flowchart LR
 
 ## Epic 1 — Reply token store
 
+**Status:** Done (`epic/1-token-store`)
+
 **Goal:** Correct one-shot, time-bounded tokens that bind a Spectrum `Space`.
 
 **API (sketch)**
@@ -82,6 +84,8 @@ class TokenStore {
 
 ## Epic 2 — Wake client
 
+**Status:** Done (`epic/2-wake-client`)
+
 **Goal:** Reliable `POST` to the Grok Bot routine webhook.
 
 **API (sketch)**
@@ -110,6 +114,8 @@ wakeGrokBot(deps: { fetch; url; key }, payload: WakePayload)
 ---
 
 ## Epic 3 — `POST /reply` HTTP
+
+**Status:** Done (`epic/3-reply-http`)
 
 **Goal:** Bot/MCP callback delivers text to the bound Space exactly once.
 
@@ -140,6 +146,8 @@ wakeGrokBot(deps: { fetch; url; key }, payload: WakePayload)
 ---
 
 ## Epic 4 — Inbound policy & orchestration
+
+**Status:** Done (`epic/4-inbound`)
 
 **Goal:** Decide what happens to each Spectrum message without the Spectrum SDK in unit tests.
 
@@ -172,6 +180,8 @@ handleInbound(input: InboundMessage, deps: Deps): Promise<InboundResult>
 
 ## Epic 5 — Process wiring & live smoke
 
+**Status:** Done (`epic/5-wiring`)
+
 **Goal:** Runnable bridge against Spectrum (terminal and/or real iMessage line).
 
 **Deliverables**
@@ -194,6 +204,8 @@ handleInbound(input: InboundMessage, deps: Deps): Promise<InboundResult>
 
 ## Epic 6 — Hardening (after loop works)
 
+**Status:** Done (`epic/6-hardening`)
+
 Only after Epic 5 smoke is green.
 
 | Item | Notes |
@@ -209,14 +221,34 @@ Only after Epic 5 smoke is green.
 ## Suggested build order (TDD)
 
 ```
-E0 harness → E1 tokens → E2 wake → E3 /reply → E4 inbound → E5 smoke → E6 harden
+E0 harness → E1 tokens → E2 wake → E3 /reply → E4 inbound → E5 smoke → E6 harden → E7 MCP
 ```
+
 
 Each epic merges only with: tests green, no unused exports, no comments that narrate the code.
 
+## Epic 7 — MCP `send_reply`
+
+**Status:** Done (`epic/7-mcp`)
+
+**Goal:** Prefer structured MCP delivery over raw HTTP for Bot replies.
+
+**Deliverables**
+
+- Shared `deliverReply` used by `POST /reply` and MCP
+- Streamable HTTP MCP at `/mcp` (stateless JSON), tool `send_reply(text, reply_token, correlation_id?)`
+- Optional `MCP_AUTH_TOKEN` bearer on `/mcp`
+- Tests: tool + protocol initialize / tools/list / tools/call
+
+**Done when**
+
+- Bot can register `https://<bridge>/mcp` and deliver via `send_reply`
+- HTTP `/reply` still works as fallback
+
+---
+
 ## Explicit non-goals (until named epic)
 
-- MCP `send_reply` server
 - Durable token store / Redis
 - Spectrum webhook mode (`@spectrum-ts/hono`) — stream mode stays
 - xAI Responses API path

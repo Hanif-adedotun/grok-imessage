@@ -1,0 +1,18 @@
+---
+type Props = {
+  lang?: string;
+  code: string;
+};
+
+const { lang = "bash", code } = Astro.props;
+---
+
+<div class="snippet">
+  <div class="snippet-bar">
+    <span>{lang}</span>
+    <button class="copy" type="button" data-copy data-cuelume-tap data-cuelume-emphasis="subtle">
+      Copy
+    </button>
+  </div>
+  <pre><code>{code.trim()}</code></pre>
+</div>
